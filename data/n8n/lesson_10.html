@@ -1,0 +1,204 @@
+<h1>Обработка ошибок</h1>
+
+<p>Правильная обработка ошибок критична для надежности workflow. n8n предоставляет несколько механизмов для работы с ошибками.</p>
+
+<h2>1. Выход Error в нодах</h2>
+
+<p>Многие ноды имеют специальный выход "Error" для обработки ошибок:</p>
+
+<ul>
+    <li>HTTP Request — ошибки сети или API</li>
+    <li>Code — ошибки выполнения кода</li>
+    <li>Database — ошибки запросов</li>
+</ul>
+
+<h3>Пример использования</h3>
+
+<pre><code>HTTP Request → 
+  ├─ Success → Set (обработка успеха)
+  └─ Error → Set (логирование ошибки) → 
+      HTTP Request (отправка уведомления)
+</code></pre>
+
+<h2>2. Нода Error Trigger</h2>
+
+<p>Специальная нода для перехвата всех ошибок в workflow:</p>
+
+<ol>
+    <li>Добавьте ноду "Error Trigger"</li>
+    <li>Подключите её к нодам, которые могут вызвать ошибку</li>
+    <li>Настройте обработку ошибок</li>
+</ol>
+
+<h3>Данные ошибки</h3>
+<pre><code>{
+  "error": {
+    "message": "Описание ошибки",
+    "name": "Error",
+    "stack": "Стек вызовов"
+  },
+  "node": {
+    "name": "Имя ноды",
+    "type": "n8n-nodes-base.httpRequest"
+  }
+}
+</code></pre>
+
+<h2>3. Try-Catch в ноде Code</h2>
+
+<p>В ноде Code можно использовать try-catch для обработки ошибок:</p>
+
+<pre><code>const items = [];
+for (const item of $input.all()) {
+  try {
+    // Потенциально опасный код
+    const result = processData(item.json);
+    items.push({
+      json: {
+        success: true,
+        data: result
+      }
+    });
+  } catch (error) {
+    items.push({
+      json: {
+        success: false,
+        error: error.message,
+        original: item.json
+      }
+    });
+  }
+}
+return items;
+</code></pre>
+
+<h2>4. Валидация данных</h2>
+
+<p>Проверяйте данные перед использованием:</p>
+
+<pre><code>// Проверка наличия поля
+{{ $json.email ? $json.email : "не указан" }}
+
+// Проверка типа
+{{ typeof $json.price === "number" ? $json.price : 0 }}
+
+// Проверка массива
+{{ Array.isArray($json.items) && $json.items.length > 0 ? $json.items : [] }}
+</code></pre>
+
+<h2>5. Нода IF для проверки ошибок</h2>
+
+<p>Используйте IF для проверки наличия ошибок:</p>
+
+<pre><code>HTTP Request → IF (проверка статуса) →
+  ├─ True (успех) → Set (обработка)
+  └─ False (ошибка) → Set (логирование ошибки)
+</code></pre>
+
+<h3>Пример проверки</h3>
+<pre><code>// Условие в IF
+{{ $json.statusCode >= 200 && $json.statusCode < 300 }}
+</code></pre>
+
+<h2>6. Retry механизм</h2>
+
+<p>Настройте повторные попытки для нод:</p>
+
+<ul>
+    <li>В настройках ноды найдите "Retry On Fail"</li>
+    <li>Установите количество попыток</li>
+    <li>Настройте задержку между попытками</li>
+</ul>
+
+<h2>7. Логирование ошибок</h2>
+
+<h3>Сохранение в файл</h3>
+<pre><code>Error Trigger → Set (форматирование) → 
+  Code (запись в файл через fs)
+</code></pre>
+
+<h3>Отправка уведомлений</h3>
+<pre><code>Error Trigger → Set (форматирование) → 
+  HTTP Request (отправка в Slack/Email/Telegram)
+</code></pre>
+
+<h2>8. Глобальная обработка ошибок</h2>
+
+<p>Создайте отдельный workflow для обработки ошибок:</p>
+
+<ol>
+    <li>Создайте workflow "Error Handler"</li>
+    <li>Используйте Webhook для приема данных об ошибках</li>
+    <li>Настройте логирование и уведомления</li>
+    <li>Вызывайте этот workflow из других workflow при ошибках</li>
+</ol>
+
+<h2>9. Мониторинг выполнения</h2>
+
+<p>Используйте Execution Data для анализа ошибок:</p>
+
+<ul>
+    <li>Просматривайте историю выполнений</li>
+    <li>Анализируйте частоту ошибок</li>
+    <li>Идентифицируйте проблемные ноды</li>
+</ul>
+
+<h2>10. Best Practices</h2>
+
+<h3>Всегда обрабатывайте ошибки</h3>
+<pre><code>HTTP Request → 
+  ├─ Success → [основная логика]
+  └─ Error → [обработка ошибки]
+</code></pre>
+
+<h3>Логируйте детали ошибок</h3>
+<pre><code>Error Trigger → Set → {
+  "timestamp": "{{ $now }}",
+  "workflow": "{{ $workflowId }}",
+  "node": "{{ $json.node.name }}",
+  "error": "{{ $json.error.message }}"
+}
+</code></pre>
+
+<h3>Используйте понятные сообщения</h3>
+<p>Создавайте информативные сообщения об ошибках для отладки.</p>
+
+<h3>Тестируйте обработку ошибок</h3>
+<p>Намеренно вызывайте ошибки для проверки обработки.</p>
+
+<h2>11. Пример полной обработки ошибок</h2>
+
+<pre><code>Webhook → 
+  Set (валидация входных данных) →
+  IF (данные валидны?) →
+    ├─ True → HTTP Request (основной запрос) →
+      ├─ Success → Set (успешный ответ)
+      └─ Error → Set (логирование) → 
+          HTTP Request (уведомление об ошибке)
+    └─ False → Set (ошибка валидации) → 
+        HTTP Request (возврат ошибки клиенту)
+</code></pre>
+
+<h2>12. Настройки workflow для ошибок</h2>
+
+<p>В настройках workflow можно установить:</p>
+
+<ul>
+    <li><strong>Save Data On Error</strong> — сохранять данные при ошибке</li>
+    <li><strong>Save Data On Success</strong> — сохранять данные при успехе</li>
+    <li><strong>Save Manual Executions</strong> — сохранять ручные выполнения</li>
+</ul>
+
+<h2>Полезные советы</h2>
+
+<ul>
+    <li>Всегда подключайте выход Error для критичных нод</li>
+    <li>Используйте Error Trigger для централизованной обработки</li>
+    <li>Логируйте все ошибки для анализа</li>
+    <li>Настраивайте уведомления о критичных ошибках</li>
+    <li>Тестируйте сценарии ошибок</li>
+    <li>Документируйте возможные ошибки</li>
+</ul>
+
+<p>Теперь мы готовы перейти к работе с LLM и DeepSeek!</p>
+

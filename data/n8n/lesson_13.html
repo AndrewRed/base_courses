@@ -1,0 +1,306 @@
+<h1>Промпты и обработка ответов</h1>
+
+<p>Правильное создание промптов и обработка ответов — ключ к эффективной работе с LLM. Изучим лучшие практики.</p>
+
+<h2>1. Структура промптов</h2>
+
+<h3>Базовый промпт</h3>
+<pre><code>{
+  "role": "user",
+  "content": "Что такое n8n?"
+}
+</code></pre>
+
+<h3>Промпт с контекстом</h3>
+<pre><code>{
+  "role": "user",
+  "content": "На основе следующих данных: {{ JSON.stringify($json.data) }}, ответь на вопрос: {{ $json.question }}"
+}
+</code></pre>
+
+<h2>2. Системные промпты</h2>
+
+<p>Системный промпт задает роль и поведение модели:</p>
+
+<pre><code>{
+  "role": "system",
+  "content": "Ты эксперт по автоматизации процессов. Отвечай кратко и по делу на русском языке."
+}
+</code></pre>
+
+<h3>Примеры системных промптов:</h3>
+
+<ul>
+    <li><strong>Аналитик данных:</strong> "Ты аналитик данных. Анализируй предоставленные данные и предоставляй структурированные выводы."</li>
+    <li><strong>Программист:</strong> "Ты опытный программист. Пиши чистый, документированный код с пояснениями."</li>
+    <li><strong>Переводчик:</strong> "Ты профессиональный переводчик. Переводи тексты точно, сохраняя стиль и смысл."</li>
+</ul>
+
+<h2>3. Шаблоны промптов</h2>
+
+<h3>Шаблон для анализа</h3>
+<pre><code>Проанализируй следующие данные:
+{{ JSON.stringify($json.data) }}
+
+Ответь на вопросы:
+1. Какие основные тренды?
+2. Какие есть проблемы?
+3. Какие рекомендации?
+</code></pre>
+
+<h3>Шаблон для извлечения данных</h3>
+<pre><code>Извлеки следующую информацию из текста:
+{{ $json.text }}
+
+Верни результат в формате JSON:
+{
+  "entities": [],
+  "sentiment": "",
+  "keywords": []
+}
+</code></pre>
+
+<h3>Шаблон для генерации</h3>
+<pre><code>Создай {{ $json.type }} на основе:
+- Тема: {{ $json.topic }}
+- Стиль: {{ $json.style }}
+- Длина: {{ $json.length }} слов
+</code></pre>
+
+<h2>4. Few-shot промпты</h2>
+
+<p>Показ примеров для обучения модели:</p>
+
+<pre><code>{
+  "messages": [
+    {
+      "role": "system",
+      "content": "Ты классифицируешь отзывы на положительные и отрицательные."
+    },
+    {
+      "role": "user",
+      "content": "Отзыв: Отличный продукт, всем рекомендую!"
+    },
+    {
+      "role": "assistant",
+      "content": "Положительный"
+    },
+    {
+      "role": "user",
+      "content": "Отзыв: {{ $json.review }}"
+    }
+  ]
+}
+</code></pre>
+
+<h2>5. Цепочки промптов (Chain of Thought)</h2>
+
+<p>Разбиение сложной задачи на шаги:</p>
+
+<pre><code>Шаг 1: Проанализируй проблему: {{ $json.problem }}
+
+Шаг 2: На основе анализа предложи решения.
+
+Шаг 3: Оцени каждое решение по критериям:
+- Эффективность
+- Сложность реализации
+- Стоимость
+
+Верни результат в формате JSON.
+</code></pre>
+
+<h2>6. Обработка ответов</h2>
+
+<h3>Извлечение текста ответа</h3>
+<pre><code>// В ноде Set
+{{ $json.choices[0].message.content }}
+</code></pre>
+
+<h3>Извлечение метаданных</h3>
+<pre><code>// Использование токенов
+{{ $json.usage.total_tokens }}
+
+// Finish reason
+{{ $json.choices[0].finish_reason }}
+</code></pre>
+
+<h2>7. Парсинг структурированных ответов</h2>
+
+<h3>Извлечение JSON из ответа</h3>
+<pre><code>// В ноде Code
+const response = $input.first().json.choices[0].message.content;
+
+// Попытка найти и распарсить JSON
+let result = null;
+try {
+  // Ищем JSON блок
+  const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/) || 
+                    response.match(/\{[\s\S]*\}/);
+  
+  if (jsonMatch) {
+    const jsonStr = jsonMatch[1] || jsonMatch[0];
+    result = JSON.parse(jsonStr);
+  } else {
+    result = { text: response };
+  }
+} catch (error) {
+  result = { 
+    error: error.message,
+    raw: response 
+  };
+}
+
+return [{
+  json: {
+    parsed: result,
+    original: response
+  }
+}];
+</code></pre>
+
+<h2>8. Валидация ответов</h2>
+
+<pre><code>HTTP Request → 
+  Set (ответ) → 
+  Code (валидация) → 
+  IF (валиден?) →
+    ├─ True → [обработка]
+    └─ False → Set (ошибка) → Retry
+</code></pre>
+
+<h3>Валидация:</h3>
+<pre><code>const response = $input.first().json.choices[0].message.content;
+
+// Проверка на пустой ответ
+if (!response || response.trim().length === 0) {
+  return [{
+    json: {
+      valid: false,
+      error: "Пустой ответ"
+    }
+  }];
+}
+
+// Проверка на наличие ошибок в ответе
+if (response.toLowerCase().includes("error") || 
+    response.toLowerCase().includes("не могу")) {
+  return [{
+    json: {
+      valid: false,
+      error: "Ответ содержит ошибку",
+      response: response
+    }
+  }];
+}
+
+return [{
+  json: {
+    valid: true,
+    response: response
+  }
+}];
+</code></pre>
+
+<h2>9. Обработка длинных ответов</h2>
+
+<p>Разбиение длинных ответов на части:</p>
+
+<pre><code>Set (ответ) → 
+  Code (разбиение) → 
+  Split In Batches → 
+  [Обработка каждой части]
+</code></pre>
+
+<h3>Разбиение:</h3>
+<pre><code>const response = $input.first().json.choices[0].message.content;
+const maxLength = 1000;
+const parts = [];
+
+for (let i = 0; i < response.length; i += maxLength) {
+  parts.push({
+    json: {
+      part: response.substring(i, i + maxLength),
+      index: Math.floor(i / maxLength),
+      total: Math.ceil(response.length / maxLength)
+    }
+  });
+}
+
+return parts;
+</code></pre>
+
+<h2>10. Нормализация ответов</h2>
+
+<p>Приведение ответов к единому формату:</p>
+
+<pre><code>HTTP Request → 
+  Code (нормализация) → 
+  Set (стандартный формат)
+</code></pre>
+
+<h3>Нормализация:</h3>
+<pre><code>const rawResponse = $input.first().json.choices[0].message.content;
+
+return [{
+  json: {
+    text: rawResponse.trim(),
+    length: rawResponse.length,
+    wordCount: rawResponse.split(/\s+/).length,
+    timestamp: new Date().toISOString(),
+    model: "deepseek-chat"
+  }
+}];
+</code></pre>
+
+<h2>11. Обработка ошибок в ответах</h2>
+
+<pre><code>HTTP Request → 
+  IF (проверка finish_reason) →
+    ├─ stop → Set (успешный ответ)
+    ├─ length → Set (ответ обрезан) → 
+        HTTP Request (продолжение)
+    └─ content_filter → Set (фильтрация контента)
+</code></pre>
+
+<h2>12. Кэширование ответов</h2>
+
+<p>Сохранение ответов для повторного использования:</p>
+
+<pre><code>Set (промпт) → 
+  Code (хеш промпта) → 
+  Code (проверка кэша) → 
+  IF (есть в кэше?) →
+    ├─ True → Set (из кэша)
+    └─ False → HTTP Request → 
+        Code (сохранение в кэш)
+</code></pre>
+
+<h2>13. Best Practices</h2>
+
+<ul>
+    <li>Используйте четкие и конкретные промпты</li>
+    <li>Добавляйте контекст в промпты</li>
+    <li>Используйте системные промпты для задания роли</li>
+    <li>Показывайте примеры (few-shot) для сложных задач</li>
+    <li>Разбивайте сложные задачи на шаги</li>
+    <li>Всегда валидируйте ответы</li>
+    <li>Обрабатывайте ошибки и edge cases</li>
+    <li>Логируйте промпты и ответы для отладки</li>
+    <li>Используйте кэширование для одинаковых запросов</li>
+</ul>
+
+<h2>14. Пример полного workflow</h2>
+
+<pre><code>Webhook → 
+  Set (формирование промпта) → 
+  HTTP Request (DeepSeek) → 
+  Code (парсинг ответа) → 
+  Code (валидация) → 
+  IF (валиден?) →
+    ├─ True → Set (результат)
+    └─ False → Set (ошибка) → 
+        HTTP Request (уведомление)
+</code></pre>
+
+<p>В следующем уроке мы изучим управление контекстом для многошаговых диалогов.</p>
+

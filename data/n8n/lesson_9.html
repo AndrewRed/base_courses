@@ -1,0 +1,182 @@
+<h1>Переменные и выражения</h1>
+
+<p>Переменные и выражения — мощный инструмент для работы с данными в n8n. Они позволяют динамически обрабатывать и трансформировать информацию.</p>
+
+<h2>Типы переменных</h2>
+
+<h3>1. Переменные данных ($json)</h3>
+<p>Доступ к данным текущего элемента:</p>
+<pre><code>{{ $json.fieldName }}
+{{ $json["field with spaces"] }}
+{{ $json.nested.field }}
+</code></pre>
+
+<h3>2. Переменные окружения ($env)</h3>
+<p>Доступ к переменным окружения:</p>
+<pre><code>{{ $env.API_KEY }}
+{{ $env.DATABASE_URL }}
+</code></pre>
+
+<h3>3. Переменные других нод ($node)</h3>
+<p>Доступ к данным из других нод:</p>
+<pre><code>{{ $("Node Name").item.json.field }}
+{{ $("Set").first().json.message }}
+{{ $("HTTP Request").all()[0].json.data }}
+</code></pre>
+
+<h3>4. Системные переменные</h3>
+<pre><code>{{ $now }}              // Текущая дата и время
+{{ $today }}            // Сегодняшняя дата
+{{ $executionId }}      // ID выполнения
+{{ $workflowId }}       // ID workflow
+{{ $resumeUrl }}        // URL для возобновления
+</code></pre>
+
+<h2>Работа с массивами</h2>
+
+<h3>Доступ к элементам</h3>
+<pre><code>{{ $json.items[0] }}           // Первый элемент
+{{ $json.items[$json.index] }}   // По индексу
+{{ $json.items.length }}         // Длина массива
+</code></pre>
+
+<h3>Итерация по массиву</h3>
+<p>В ноде Code можно обработать все элементы:</p>
+<pre><code>const items = [];
+for (const item of $input.all()) {
+  items.push({
+    json: {
+      processed: item.json.data * 2
+    }
+  });
+}
+return items;
+</code></pre>
+
+<h2>Строковые операции</h2>
+
+<pre><code>{{ $json.name.toUpperCase() }}        // Верхний регистр
+{{ $json.name.toLowerCase() }}        // Нижний регистр
+{{ $json.text.substring(0, 10) }}     // Подстрока
+{{ $json.email.split('@')[0] }}       // Разделение
+{{ $json.name + " " + $json.surname }} // Конкатенация
+</code></pre>
+
+<h2>Математические операции</h2>
+
+<pre><code>{{ $json.price * 1.2 }}              // Умножение
+{{ $json.total / $json.count }}        // Деление
+{{ Math.round($json.value) }}          // Округление
+{{ Math.max($json.a, $json.b) }}       // Максимум
+{{ ($json.a + $json.b) / 2 }}         // Среднее
+</code></pre>
+
+<h2>Работа с датами</h2>
+
+<pre><code>{{ $now }}                           // Текущее время
+{{ $now.toISOString() }}               // ISO формат
+{{ $now.format('YYYY-MM-DD') }}        // Форматирование
+{{ $now.minus({ days: 7 }) }}          // Минус 7 дней
+{{ $now.plus({ hours: 2 }) }}          // Плюс 2 часа
+{{ $json.date.toDate() }}              // Преобразование в дату
+</code></pre>
+
+<h2>Условные выражения</h2>
+
+<pre><code>{{ $json.age > 18 ? "Взрослый" : "Ребенок" }}
+{{ $json.status === "active" ? "Да" : "Нет" }}
+{{ $json.items && $json.items.length > 0 ? $json.items : [] }}
+</code></pre>
+
+<h2>Логические операции</h2>
+
+<pre><code>{{ $json.active && $json.verified }}     // И
+{{ $json.role === "admin" || $json.role === "moderator" }} // ИЛИ
+{{ !$json.deleted }}                      // НЕ
+</code></pre>
+
+<h2>Работа с объектами</h2>
+
+<pre><code>{{ Object.keys($json) }}                 // Ключи объекта
+{{ Object.values($json) }}                // Значения
+{{ $json.hasOwnProperty('field') }}      // Проверка наличия
+{{ JSON.stringify($json) }}               // В JSON строку
+{{ JSON.parse($json.stringData) }}        // Из JSON строки
+</code></pre>
+
+<h2>Функции для работы с данными</h2>
+
+<h3>Проверка типов</h3>
+<pre><code>{{ typeof $json.value === "string" }}
+{{ Array.isArray($json.items) }}
+{{ $json.data !== null && $json.data !== undefined }}
+</code></pre>
+
+<h3>Фильтрация и поиск</h3>
+<pre><code>// В ноде Code
+const filtered = $input.all().filter(item => 
+  item.json.status === "active"
+);
+return filtered;
+</code></pre>
+
+<h2>Практические примеры</h2>
+
+<h3>Пример 1: Форматирование данных</h3>
+<pre><code>// Создание полного имени
+{{ $json.firstName + " " + $json.lastName }}
+
+// Форматирование цены
+{{ "$" + $json.price.toFixed(2) }}
+
+// Форматирование даты
+{{ $json.date.format('DD.MM.YYYY HH:mm') }}
+</code></pre>
+
+<h3>Пример 2: Условная логика</h3>
+<pre><code>// Определение категории по возрасту
+{{ $json.age < 18 ? "Дети" : $json.age < 65 ? "Взрослые" : "Пенсионеры" }}
+
+// Проверка и значение по умолчанию
+{{ $json.email || "не указан" }}
+</code></pre>
+
+<h3>Пример 3: Работа с API данными</h3>
+<pre><code>// Извлечение данных из вложенного объекта
+{{ $json.response.data.user.name }}
+
+// Безопасный доступ (с проверкой)
+{{ $json.response && $json.response.data ? $json.response.data.value : null }}
+</code></pre>
+
+<h2>Отладка выражений</h2>
+
+<p>Для отладки выражений:</p>
+<ol>
+    <li>Используйте ноду Set для проверки значений</li>
+    <li>Просматривайте данные после выполнения ноды</li>
+    <li>Используйте простые выражения перед сложными</li>
+    <li>Проверяйте типы данных</li>
+</ol>
+
+<h2>Частые ошибки</h2>
+
+<ul>
+    <li><strong>Обращение к несуществующему полю</strong> — используйте проверки</li>
+    <li><strong>Неправильный тип данных</strong> — проверяйте типы перед операциями</li>
+    <li><strong>Ошибки в синтаксисе</strong> — используйте правильные кавычки и скобки</li>
+    <li><strong>Доступ к данным другой ноды</strong> — убедитесь, что нода выполнена</li>
+</ul>
+
+<h2>Полезные советы</h2>
+
+<ul>
+    <li>Используйте выражения для динамических значений</li>
+    <li>Комбинируйте простые выражения для сложной логики</li>
+    <li>Тестируйте выражения в ноде Set перед использованием</li>
+    <li>Документируйте сложные выражения</li>
+    <li>Используйте переменные окружения для секретных данных</li>
+</ul>
+
+<p>В следующем уроке мы изучим обработку ошибок в workflow.</p>
+

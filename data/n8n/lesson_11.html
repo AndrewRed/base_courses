@@ -1,0 +1,232 @@
+<h1>Настройка DeepSeek API</h1>
+
+<p>DeepSeek — мощный и доступный LLM, который отлично подходит для работы в n8n. Настроим интеграцию с DeepSeek API.</p>
+
+<h2>1. Получение API ключа</h2>
+
+<ol>
+    <li>Зарегистрируйтесь на <a href="https://platform.deepseek.com" target="_blank">platform.deepseek.com</a></li>
+    <li>Перейдите в раздел API Keys</li>
+    <li>Создайте новый API ключ</li>
+    <li><strong>Важно:</strong> Сохраните ключ сразу — он показывается только один раз</li>
+</ol>
+
+<h2>2. Сохранение ключа в n8n</h2>
+
+<p>Никогда не храните API ключи в коде. Используйте переменные окружения или Credentials:</p>
+
+<h3>Способ 1: Переменные окружения (Рекомендуется)</h3>
+
+<p>Добавьте в ваш <code>.env</code> или Docker Compose:</p>
+
+<pre><code>DEEPSEEK_API_KEY=sk-your-api-key-here
+</code></pre>
+
+<h3>Способ 2: Credentials в n8n</h3>
+
+<ol>
+    <li>Перейдите в Settings → Credentials</li>
+    <li>Создайте новый credential типа "Generic Credential Type"</li>
+    <li>Добавьте поле "API Key"</li>
+    <li>Сохраните ключ</li>
+</ol>
+
+<h2>3. Базовый HTTP Request к DeepSeek</h2>
+
+<p>DeepSeek использует OpenAI-совместимый API. Создайте ноду HTTP Request:</p>
+
+<h3>Настройки ноды:</h3>
+<ul>
+    <li><strong>Method:</strong> POST</li>
+    <li><strong>URL:</strong> <code>https://api.deepseek.com/v1/chat/completions</code></li>
+    <li><strong>Authentication:</strong> Generic Credential Type</li>
+    <li><strong>Headers:</strong>
+        <ul>
+            <li><code>Content-Type: application/json</code></li>
+            <li><code>Authorization: Bearer {{ $env.DEEPSEEK_API_KEY }}</code></li>
+        </ul>
+    </li>
+    <li><strong>Body:</strong> JSON</li>
+</ul>
+
+<h2>4. Структура запроса</h2>
+
+<p>Базовый запрос к DeepSeek API:</p>
+
+<pre><code>{
+  "model": "deepseek-chat",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Привет! Как дела?"
+    }
+  ],
+  "temperature": 0.7,
+  "max_tokens": 2000
+}
+</code></pre>
+
+<h3>Параметры запроса:</h3>
+<ul>
+    <li><strong>model:</strong> <code>deepseek-chat</code> (основная модель) или <code>deepseek-coder</code> (для кода)</li>
+    <li><strong>messages:</strong> Массив сообщений с ролями (system, user, assistant)</li>
+    <li><strong>temperature:</strong> 0.0-1.0 (креативность ответов)</li>
+    <li><strong>max_tokens:</strong> Максимальная длина ответа</li>
+    <li><strong>stream:</strong> true/false (потоковая передача)</li>
+</ul>
+
+<h2>5. Создание ноды Set для запроса</h2>
+
+<p>Создайте ноду Set перед HTTP Request для формирования тела запроса:</p>
+
+<pre><code>Set нода:
+- Name: requestBody
+- Value: {
+    "model": "deepseek-chat",
+    "messages": [
+      {
+        "role": "user",
+        "content": "{{ $json.userMessage }}"
+      }
+    ],
+    "temperature": 0.7,
+    "max_tokens": 2000
+  }
+</code></pre>
+
+<h2>6. Обработка ответа</h2>
+
+<p>Ответ от DeepSeek приходит в формате:</p>
+
+<pre><code>{
+  "id": "chatcmpl-...",
+  "object": "chat.completion",
+  "created": 1234567890,
+  "model": "deepseek-chat",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Ответ модели"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 10,
+    "completion_tokens": 20,
+    "total_tokens": 30
+  }
+}
+</code></pre>
+
+<h3>Извлечение ответа:</h3>
+<pre><code>// В следующей ноде Set
+{{ $json.choices[0].message.content }}
+</code></pre>
+
+<h2>7. Работа с системным промптом</h2>
+
+<p>Системный промпт задает поведение модели:</p>
+
+<pre><code>{
+  "model": "deepseek-chat",
+  "messages": [
+    {
+      "role": "system",
+      "content": "Ты полезный ассистент, который отвечает на русском языке."
+    },
+    {
+      "role": "user",
+      "content": "{{ $json.userMessage }}"
+    }
+  ]
+}
+</code></pre>
+
+<h2>8. Обработка ошибок</h2>
+
+<p>Настройте обработку ошибок API:</p>
+
+<pre><code>HTTP Request → 
+  ├─ Success → Set (извлечение ответа)
+  └─ Error → Set (логирование ошибки) → 
+      IF (проверка типа ошибки) →
+        ├─ 401/403 → Set (неверный API ключ)
+        ├─ 429 → Set (превышен лимит) → Wait → Retry
+        └─ Other → Set (другая ошибка)
+</code></pre>
+
+<h2>9. Использование переменных в промптах</h2>
+
+<p>Динамические промпты с данными из workflow:</p>
+
+<pre><code>{
+  "messages": [
+    {
+      "role": "user",
+      "content": "Проанализируй данные: {{ JSON.stringify($json.data) }}"
+    }
+  ]
+}
+</code></pre>
+
+<h2>10. Тестирование подключения</h2>
+
+<p>Создайте простой тестовый workflow:</p>
+
+<pre><code>Manual Trigger → 
+  Set (requestBody) → 
+  HTTP Request (DeepSeek API) → 
+  Set (извлечение ответа) → 
+  [Просмотр результата]
+</code></pre>
+
+<h3>Тестовый запрос:</h3>
+<pre><code>{
+  "model": "deepseek-chat",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Скажи привет на русском языке"
+    }
+  ]
+}
+</code></pre>
+
+<h2>11. Оптимизация запросов</h2>
+
+<h3>Использование правильной модели</h3>
+<ul>
+    <li><strong>deepseek-chat</strong> — для общих задач и диалогов</li>
+    <li><strong>deepseek-coder</strong> — для работы с кодом</li>
+</ul>
+
+<h3>Настройка параметров</h3>
+<ul>
+    <li><strong>temperature: 0.7</strong> — баланс между креативностью и точностью</li>
+    <li><strong>max_tokens: 2000</strong> — достаточно для большинства задач</li>
+    <li><strong>top_p: 0.9</strong> — альтернатива temperature</li>
+</ul>
+
+<h2>12. Безопасность</h2>
+
+<p><strong>Важные правила:</strong></p>
+<ul>
+    <li>Никогда не храните API ключи в коде workflow</li>
+    <li>Используйте переменные окружения</li>
+    <li>Не логируйте API ключи</li>
+    <li>Ограничьте доступ к credentials в n8n</li>
+    <li>Регулярно ротируйте ключи</li>
+</ul>
+
+<h2>Полезные ссылки</h2>
+
+<ul>
+    <li><a href="https://platform.deepseek.com/docs" target="_blank">Документация DeepSeek API</a></li>
+    <li><a href="https://api.deepseek.com/v1/models" target="_blank">Список доступных моделей</a></li>
+</ul>
+
+<p>В следующем уроке мы создадим переиспользуемые ноды для работы с DeepSeek.</p>
+

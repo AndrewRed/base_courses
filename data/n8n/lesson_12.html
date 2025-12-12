@@ -1,0 +1,277 @@
+<h1>Создание нод для работы с LLM</h1>
+
+<p>Создадим переиспользуемые компоненты для работы с DeepSeek и другими LLM в n8n.</p>
+
+<h2>1. Базовая нода для вызова LLM</h2>
+
+<p>Создадим workflow, который можно использовать как под-workflow:</p>
+
+<h3>Структура:</h3>
+<pre><code>Webhook (вход) → 
+  Set (формирование запроса) → 
+  HTTP Request (DeepSeek API) → 
+  Set (обработка ответа) → 
+  [Возврат результата]
+</code></pre>
+
+<h3>Входные данные (Webhook):</h3>
+<pre><code>{
+  "prompt": "Текст промпта",
+  "systemPrompt": "Системный промпт (опционально)",
+  "temperature": 0.7,
+  "maxTokens": 2000
+}
+</code></pre>
+
+<h3>Нода Set (формирование запроса):</h3>
+<pre><code>{
+  "model": "deepseek-chat",
+  "messages": [
+    {{ $json.systemPrompt ? '{"role": "system", "content": "' + $json.systemPrompt + '"},' : '' }}
+    {
+      "role": "user",
+      "content": "{{ $json.prompt }}"
+    }
+  ],
+  "temperature": {{ $json.temperature || 0.7 }},
+  "max_tokens": {{ $json.maxTokens || 2000 }}
+}
+</code></pre>
+
+<h2>2. Нода с поддержкой контекста</h2>
+
+<p>Создадим ноду, которая поддерживает историю диалога:</p>
+
+<pre><code>Webhook → 
+  Set (подготовка сообщений) → 
+  HTTP Request → 
+  Set (добавление в историю) → 
+  [Возврат]
+</code></pre>
+
+<h3>Нода Set (подготовка сообщений):</h3>
+<pre><code>// В ноде Code
+const messages = [];
+
+// Системный промпт
+if ($input.first().json.systemPrompt) {
+  messages.push({
+    role: "system",
+    content: $input.first().json.systemPrompt
+  });
+}
+
+// История диалога (если есть)
+if ($input.first().json.history && Array.isArray($input.first().json.history)) {
+  messages.push(...$input.first().json.history);
+}
+
+// Новое сообщение пользователя
+messages.push({
+  role: "user",
+  content: $input.first().json.prompt
+});
+
+return [{
+  json: {
+    messages: messages,
+    model: "deepseek-chat",
+    temperature: $input.first().json.temperature || 0.7,
+    max_tokens: $input.first().json.maxTokens || 2000
+  }
+}];
+</code></pre>
+
+<h2>3. Нода для обработки массивов</h2>
+
+<p>Обработка множества промптов параллельно:</p>
+
+<pre><code>Webhook → 
+  Split In Batches (размер: 5) → 
+  HTTP Request (DeepSeek) → 
+  Merge → 
+  Set (результаты)
+</code></pre>
+
+<h3>Оптимизация:</h3>
+<ul>
+    <li>Используйте разумный размер батча (5-10 запросов)</li>
+    <li>Учитывайте rate limits API</li>
+    <li>Добавьте задержку между батчами при необходимости</li>
+</ul>
+
+<h2>4. Нода с обработкой ошибок</h2>
+
+<pre><code>Set (запрос) → 
+  HTTP Request → 
+    ├─ Success → Set (успешный ответ)
+    └─ Error → 
+        IF (тип ошибки) →
+          ├─ Rate Limit → Wait (60 сек) → Retry
+          ├─ Invalid Key → Set (ошибка аутентификации)
+          └─ Other → Set (логирование) → 
+              HTTP Request (уведомление)
+</code></pre>
+
+<h2>5. Нода для извлечения структурированных данных</h2>
+
+<p>Извлечение данных из ответа LLM:</p>
+
+<pre><code>HTTP Request → 
+  Set (ответ) → 
+  Code (парсинг JSON из текста) → 
+  Set (структурированные данные)
+</code></pre>
+
+<h3>Code нода (парсинг):</h3>
+<pre><code>const response = $input.first().json.choices[0].message.content;
+
+// Попытка извлечь JSON из ответа
+let jsonData = null;
+try {
+  // Ищем JSON в ответе
+  const jsonMatch = response.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    jsonData = JSON.parse(jsonMatch[0]);
+  } else {
+    // Если JSON не найден, пытаемся распарсить весь ответ
+    jsonData = JSON.parse(response);
+  }
+} catch (error) {
+  // Если не удалось распарсить, возвращаем текст
+  jsonData = { text: response };
+}
+
+return [{
+  json: {
+    original: response,
+    parsed: jsonData
+  }
+}];
+</code></pre>
+
+<h2>6. Нода для работы с несколькими LLM</h2>
+
+<p>Создадим универсальную ноду, работающую с разными провайдерами:</p>
+
+<pre><code>Webhook → 
+  IF (выбор провайдера) →
+    ├─ DeepSeek → HTTP Request (DeepSeek)
+    ├─ OpenAI → HTTP Request (OpenAI)
+    └─ Anthropic → HTTP Request (Anthropic)
+  → Merge → Set (нормализованный ответ)
+</code></pre>
+
+<h2>7. Нода для стриминга ответов</h2>
+
+<p>Для потоковой передачи ответов (streaming):</p>
+
+<pre><code>HTTP Request (stream: true) → 
+  Code (обработка потока) → 
+  Set (накопленный ответ)
+</code></pre>
+
+<h3>Настройка HTTP Request:</h3>
+<ul>
+    <li>В Body добавьте: <code>"stream": true</code></li>
+    <li>В Response настройте обработку потока</li>
+</ul>
+
+<h2>8. Создание под-workflow</h2>
+
+<p>Превратите ноду в переиспользуемый под-workflow:</p>
+
+<ol>
+    <li>Сохраните workflow как "LLM Call"</li>
+    <li>Используйте Webhook как вход</li>
+    <li>В других workflow используйте "Execute Workflow" ноду</li>
+    <li>Передавайте параметры через входные данные</li>
+</ol>
+
+<h2>9. Нода для цепочки вызовов LLM</h2>
+
+<p>Последовательные вызовы LLM с передачей контекста:</p>
+
+<pre><code>Webhook → 
+  Set (первый промпт) → 
+  HTTP Request (LLM 1) → 
+  Set (второй промпт с результатом) → 
+  HTTP Request (LLM 2) → 
+  Set (финальный результат)
+</code></pre>
+
+<h3>Пример:</h3>
+<pre><code>// Первый вызов
+"Проанализируй данные: {{ $json.inputData }}"
+
+// Второй вызов
+"На основе анализа: {{ $json.analysis }}, предложи решение"
+</code></pre>
+
+<h2>10. Нода с кэшированием</h2>
+
+<p>Кэширование ответов для экономии токенов:</p>
+
+<pre><code>Set (промпт) → 
+  Code (проверка кэша) → 
+  IF (есть в кэше?) →
+    ├─ True → Set (из кэша)
+    └─ False → HTTP Request → 
+        Code (сохранение в кэш) → 
+        Set (ответ)
+</code></pre>
+
+<h2>11. Нода для валидации промптов</h2>
+
+<p>Проверка промптов перед отправкой:</p>
+
+<pre><code>Webhook → 
+  Code (валидация) → 
+  IF (валиден?) →
+    ├─ True → HTTP Request
+    └─ False → Set (ошибка валидации)
+</code></pre>
+
+<h3>Валидация:</h3>
+<pre><code>const prompt = $input.first().json.prompt;
+
+if (!prompt || prompt.length === 0) {
+  return [{
+    json: {
+      valid: false,
+      error: "Промпт не может быть пустым"
+    }
+  }];
+}
+
+if (prompt.length > 10000) {
+  return [{
+    json: {
+      valid: false,
+      error: "Промпт слишком длинный"
+    }
+  }];
+}
+
+return [{
+  json: {
+    valid: true,
+    prompt: prompt
+  }
+}];
+</code></pre>
+
+<h2>12. Best Practices</h2>
+
+<ul>
+    <li>Создавайте переиспользуемые компоненты</li>
+    <li>Используйте под-workflow для сложной логики</li>
+    <li>Всегда обрабатывайте ошибки</li>
+    <li>Логируйте запросы и ответы для отладки</li>
+    <li>Ограничивайте размер промптов</li>
+    <li>Используйте кэширование где возможно</li>
+    <li>Мониторьте использование токенов</li>
+</ul>
+
+<p>В следующем уроке мы изучим работу с промптами и управление контекстом.</p>
+

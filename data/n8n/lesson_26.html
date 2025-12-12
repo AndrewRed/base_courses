@@ -1,0 +1,113 @@
+<h1>Мониторинг и логирование</h1>
+
+<p>Эффективный мониторинг и логирование необходимы для поддержки и отладки мультиагентных систем. Создадим систему мониторинга.</p>
+
+<h2>1. Структурированное логирование</h2>
+
+<p>Используйте единый формат для всех логов:</p>
+
+<pre><code>Agent →
+  Set (структурированный лог) →
+  Database (сохранение лога)
+</code></pre>
+
+<h3>Структура лога:</h3>
+<pre><code>{
+  "timestamp": "{{ $now }}",
+  "level": "info",
+  "agent": "Analyst Agent",
+  "execution_id": "{{ $executionId }}",
+  "message": "Обработка завершена",
+  "data": {
+    "input_size": "{{ $json.input.length }}",
+    "output_size": "{{ $json.output.length }}",
+    "duration_ms": 1500
+  }
+}
+</code></pre>
+
+<h2>2. Уровни логирования</h2>
+
+<ul>
+    <li><strong>DEBUG</strong> — детальная информация для отладки</li>
+    <li><strong>INFO</strong> — общая информация о выполнении</li>
+    <li><strong>WARN</strong> — предупреждения</li>
+    <li><strong>ERROR</strong> — ошибки</li>
+</ul>
+
+<h2>3. Логирование метрик</h2>
+
+<pre><code>Set (start_time) →
+  Agent →
+  Set (metrics) →
+  Code (форматирование метрик) →
+  Database (сохранение)
+</code></pre>
+
+<h3>Метрики:</h3>
+<pre><code>{
+  "agent": "Analyst Agent",
+  "execution_time_ms": 1500,
+  "tokens_used": 500,
+  "cost_estimate": 0.05,
+  "success": true,
+  "input_size": 1000,
+  "output_size": 500
+}
+</code></pre>
+
+<h2>4. Агрегация логов</h2>
+
+<pre><code>Schedule Trigger (ежечасно) →
+  Database (чтение логов) →
+  Code (агрегация) →
+  Set (статистика) →
+  HTTP Request (отчет)
+</code></pre>
+
+<h2>5. Алерты и уведомления</h2>
+
+<pre><code>Agent →
+    ├─ Success → Continue
+    └─ Error →
+        Code (проверка критичности) →
+        IF (критическая ошибка?) →
+          ├─ True → HTTP Request (уведомление)
+          └─ False → Log Only
+</code></pre>
+
+<h2>6. Дашборд мониторинга</h2>
+
+<p>Создайте workflow для генерации дашборда:</p>
+
+<pre><code>Schedule Trigger →
+  Database (чтение метрик) →
+  Code (агрегация данных) →
+  Set (данные для дашборда) →
+  HTTP Request (обновление дашборда)
+</code></pre>
+
+<h2>7. Best Practices</h2>
+
+<ul>
+    <li>Используйте структурированное логирование</li>
+    <li>Логируйте все критичные операции</li>
+    <li>Используйте уровни логирования</li>
+    <li>Агрегируйте метрики</li>
+    <li>Настраивайте алерты</li>
+    <li>Создавайте дашборды</li>
+    <li>Храните логи централизованно</li>
+    <li>Регулярно анализируйте логи</li>
+</ul>
+
+<h2>8. Инструменты мониторинга</h2>
+
+<ul>
+    <li><strong>n8n Execution History</strong> — встроенная история</li>
+    <li><strong>Database</strong> — хранение логов и метрик</li>
+    <li><strong>External Logging</strong> — внешние системы (ELK, Grafana)</li>
+    <li><strong>APM Tools</strong> — инструменты мониторинга производительности</li>
+</ul>
+
+<p>Поздравляем! Вы завершили курс по n8n. Теперь вы умеете создавать сложные мультиагентные системы с использованием DeepSeek и других LLM.</p>
+

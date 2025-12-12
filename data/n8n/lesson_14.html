@@ -1,0 +1,316 @@
+<h1>Управление контекстом</h1>
+
+<p>Управление контекстом критично для создания интеллектуальных диалогов и мультишаговых взаимодействий с LLM.</p>
+
+<h2>1. Базовое управление контекстом</h2>
+
+<p>Контекст — это история сообщений, которая передается модели для понимания предыдущих взаимодействий.</p>
+
+<h3>Простая история диалога:</h3>
+<pre><code>{
+  "messages": [
+    {
+      "role": "system",
+      "content": "Ты помощник по автоматизации"
+    },
+    {
+      "role": "user",
+      "content": "Привет!"
+    },
+    {
+      "role": "assistant",
+      "content": "Привет! Чем могу помочь?"
+    },
+    {
+      "role": "user",
+      "content": "{{ $json.newMessage }}"
+    }
+  ]
+}
+</code></pre>
+
+<h2>2. Сохранение контекста между запросами</h2>
+
+<h3>Способ 1: Передача истории в запросе</h3>
+
+<pre><code>Webhook → 
+  Set (добавление в историю) → 
+  HTTP Request → 
+  Set (сохранение ответа в историю) → 
+  [Возврат обновленной истории]
+</code></pre>
+
+<h3>Нода Set (добавление в историю):</h3>
+<pre><code>// В ноде Code
+const history = $input.first().json.history || [];
+const newMessage = $input.first().json.message;
+
+// Добавляем сообщение пользователя
+history.push({
+  role: "user",
+  content: newMessage
+});
+
+// Ограничиваем размер истории (последние 10 сообщений)
+const maxHistory = 10;
+const trimmedHistory = history.slice(-maxHistory);
+
+return [{
+  json: {
+    messages: [
+      {
+        role: "system",
+        content: $input.first().json.systemPrompt || "Ты полезный ассистент"
+      },
+      ...trimmedHistory
+    ]
+  }
+}];
+</code></pre>
+
+<h2>3. Хранение контекста в базе данных</h2>
+
+<p>Для долгосрочного хранения контекста используйте базу данных:</p>
+
+<pre><code>Webhook (sessionId, message) → 
+  Database (получение истории) → 
+  Set (добавление сообщения) → 
+  HTTP Request (LLM) → 
+  Database (сохранение обновленной истории)
+</code></pre>
+
+<h3>Структура таблицы:</h3>
+<pre><code>CREATE TABLE conversations (
+  session_id VARCHAR(255) PRIMARY KEY,
+  history JSONB,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+);
+</code></pre>
+
+<h2>4. Управление размером контекста</h2>
+
+<p>Ограничение размера контекста для экономии токенов:</p>
+
+<pre><code>Code (обрезка истории) → 
+  Set (оптимизированная история)
+</code></pre>
+
+<h3>Обрезка истории:</h3>
+<pre><code>const history = $input.first().json.history || [];
+const maxTokens = 2000; // Максимум токенов для контекста
+let currentTokens = 0;
+const trimmedHistory = [];
+
+// Идем с конца (самые свежие сообщения)
+for (let i = history.length - 1; i >= 0; i--) {
+  const message = history[i];
+  // Примерная оценка токенов (1 токен ≈ 4 символа)
+  const estimatedTokens = message.content.length / 4;
+  
+  if (currentTokens + estimatedTokens > maxTokens) {
+    break;
+  }
+  
+  trimmedHistory.unshift(message);
+  currentTokens += estimatedTokens;
+}
+
+return [{
+  json: {
+    history: trimmedHistory,
+    tokensUsed: currentTokens
+  }
+}];
+</code></pre>
+
+<h2>5. Резюмирование старого контекста</h2>
+
+<p>Вместо обрезки можно резюмировать старые сообщения:</p>
+
+<pre><code>Code (разделение истории) → 
+  IF (история длинная?) →
+    ├─ True → HTTP Request (резюме старых) → 
+        Set (резюме + новые сообщения)
+    └─ False → Set (вся история)
+</code></pre>
+
+<h3>Резюмирование:</h3>
+<pre><code>const history = $input.first().json.history;
+const keepRecent = 5; // Оставляем последние 5 сообщений
+const oldMessages = history.slice(0, -keepRecent);
+const recentMessages = history.slice(-keepRecent);
+
+if (oldMessages.length > 0) {
+  // Создаем промпт для резюме
+  const summaryPrompt = `Резюмируй следующий диалог: ${JSON.stringify(oldMessages)}`;
+  
+  // Вызываем LLM для резюме
+  // ... (HTTP Request к LLM)
+  
+  // Объединяем резюме с новыми сообщениями
+  return [{
+    json: {
+      history: [
+        { role: "system", content: `Резюме предыдущего диалога: ${summary}` },
+        ...recentMessages
+      ]
+    }
+  }];
+}
+
+return [{ json: { history: history } }];
+</code></pre>
+
+<h2>6. Контекст для разных агентов</h2>
+
+<p>Каждый агент может иметь свой контекст:</p>
+
+<pre><code>Webhook (agentId, message) → 
+  Database (получение контекста агента) → 
+  Set (добавление сообщения) → 
+  HTTP Request (LLM с контекстом агента) → 
+  Database (сохранение контекста)
+</code></pre>
+
+<h3>Структура контекста агента:</h3>
+<pre><code>{
+  "agent_id": "analyst_1",
+  "system_prompt": "Ты аналитик данных...",
+  "history": [...],
+  "metadata": {
+    "created_at": "...",
+    "last_activity": "..."
+  }
+}
+</code></pre>
+
+<h2>7. Контекстные переменные</h2>
+
+<p>Хранение переменных состояния в контексте:</p>
+
+<pre><code>{
+  "context": {
+    "variables": {
+      "user_name": "Иван",
+      "current_task": "анализ данных",
+      "step": 3
+    },
+    "history": [...]
+  }
+}
+</code></pre>
+
+<h3>Использование переменных в промптах:</h3>
+<pre><code>Привет, {{ $json.context.variables.user_name }}! 
+Мы на шаге {{ $json.context.variables.step }} задачи "{{ $json.context.variables.current_task }}".
+</code></pre>
+
+<h2>8. Обновление контекста после ответа</h2>
+
+<pre><code>HTTP Request (LLM) → 
+  Set (извлечение ответа) → 
+  Code (обновление истории) → 
+  Database (сохранение)
+</code></pre>
+
+<h3>Обновление истории:</h3>
+<pre><code>const history = $input.first().json.history || [];
+const userMessage = $input.first().json.userMessage;
+const assistantResponse = $input.first().json.assistantResponse;
+
+// Добавляем оба сообщения
+history.push({
+  role: "user",
+  content: userMessage,
+  timestamp: new Date().toISOString()
+});
+
+history.push({
+  role: "assistant",
+  content: assistantResponse,
+  timestamp: new Date().toISOString()
+});
+
+return [{
+  json: {
+    history: history,
+    updated: true
+  }
+}];
+</code></pre>
+
+<h2>9. Контекст для мультиагентных систем</h2>
+
+<p>Общий контекст для группы агентов:</p>
+
+<pre><code>Webhook → 
+  Set (общий контекст) → 
+  Split → 
+    ├─ Agent 1 (с контекстом)
+    ├─ Agent 2 (с контекстом)
+    └─ Agent 3 (с контекстом)
+  → Merge → 
+  Set (обновление общего контекста)
+</code></pre>
+
+<h2>10. Очистка контекста</h2>
+
+<p>Механизм очистки устаревшего контекста:</p>
+
+<pre><code>Schedule Trigger (ежедневно) → 
+  Database (получение всех сессий) → 
+  Code (фильтрация старых) → 
+  Database (удаление старых сессий)
+</code></pre>
+
+<h3>Фильтрация:</h3>
+<pre><code>const sessions = $input.all();
+const maxAge = 30 * 24 * 60 * 60 * 1000; // 30 дней
+const now = new Date();
+
+const oldSessions = sessions.filter(session => {
+  const lastActivity = new Date(session.json.updated_at);
+  return (now - lastActivity) > maxAge;
+});
+
+return oldSessions.map(session => ({
+  json: {
+    session_id: session.json.session_id,
+    action: "delete"
+  }
+}));
+</code></pre>
+
+<h2>11. Контекст с метаданными</h2>
+
+<p>Добавление метаданных к контексту:</p>
+
+<pre><code>{
+  "context": {
+    "session_id": "abc123",
+    "user_id": "user_1",
+    "created_at": "2024-01-01T00:00:00Z",
+    "last_activity": "2024-01-01T12:00:00Z",
+    "message_count": 15,
+    "tokens_used": 5000,
+    "history": [...]
+  }
+}
+</code></pre>
+
+<h2>12. Best Practices</h2>
+
+<ul>
+    <li>Ограничивайте размер истории для экономии токенов</li>
+    <li>Используйте резюмирование для длинных диалогов</li>
+    <li>Храните контекст в базе данных для долгосрочных сессий</li>
+    <li>Очищайте устаревший контекст регулярно</li>
+    <li>Используйте уникальные session_id для каждого диалога</li>
+    <li>Добавляйте метаданные для отслеживания</li>
+    <li>Тестируйте с разными размерами контекста</li>
+    <li>Мониторьте использование токенов</li>
+</ul>
+
+<p>Теперь мы готовы к созданию мультиагентных систем!</p>
+

@@ -1,0 +1,266 @@
+<h1>Тестирование и валидация</h1>
+
+<p>Правильное тестирование и валидация критичны для надежности мультиагентных систем. Создадим систему тестирования.</p>
+
+<h2>1. Unit тестирование агентов</h2>
+
+<p>Тестирование каждого агента изолированно:</p>
+
+<pre><code>Manual Trigger →
+  Set (тестовые входные данные) →
+  Execute Workflow (тестируемый агент) →
+  Set (ожидаемый результат) →
+  Code (сравнение) →
+  Set (результат теста)
+</code></pre>
+
+<h3>Тестовый случай:</h3>
+<pre><code>{
+  "test_name": "Analyst Agent - Basic Analysis",
+  "input": {
+    "data": [1, 2, 3, 4, 5]
+  },
+  "expected": {
+    "has_analysis": true,
+    "has_trends": true
+  }
+}
+</code></pre>
+
+<h2>2. Интеграционное тестирование</h2>
+
+<p>Тестирование взаимодействия между агентами:</p>
+
+<pre><code>Manual Trigger →
+  Set (тестовые данные) →
+  Execute Workflow (Agent 1) →
+  Execute Workflow (Agent 2) →
+  Execute Workflow (Agent 3) →
+  Code (проверка интеграции) →
+  Set (результат)
+</code></pre>
+
+<h2>3. Валидация входных данных</h2>
+
+<pre><code>Webhook →
+  Code (валидация схемы) →
+  IF (валидны?) →
+    ├─ True → Continue
+    └─ False → Set (ошибка валидации)
+</code></pre>
+
+<h3>Валидация схемы:</h3>
+<pre><code>const data = $input.first().json;
+const schema = {
+  required: ["task", "data"],
+  properties: {
+    task: { type: "string", minLength: 1 },
+    data: { type: "object" }
+  }
+};
+
+const errors = [];
+
+if (!data.task) {
+  errors.push("Поле 'task' обязательно");
+}
+
+if (typeof data.task !== "string" || data.task.length === 0) {
+  errors.push("Поле 'task' должно быть непустой строкой");
+}
+
+if (!data.data || typeof data.data !== "object") {
+  errors.push("Поле 'data' должно быть объектом");
+}
+
+return [{
+  json: {
+    valid: errors.length === 0,
+    errors: errors
+  }
+}];
+</code></pre>
+
+<h2>4. Валидация выходных данных</h2>
+
+<pre><code>Agent →
+  Code (валидация результата) →
+  IF (результат валиден?) →
+    ├─ True → Continue
+    └─ False → Set (ошибка) → Retry
+</code></pre>
+
+<h2>5. Нагрузочное тестирование</h2>
+
+<pre><code>Schedule Trigger →
+  Code (генерация нагрузки) →
+  Split In Batches →
+    Execute Workflow (агент) →
+  Merge →
+  Code (анализ производительности) →
+  Set (результаты нагрузочного теста)
+</code></pre>
+
+<h2>6. Тестирование обработки ошибок</h2>
+
+<pre><code>Manual Trigger →
+  Set (симуляция ошибки) →
+  Agent →
+    ├─ Success → Set (неожиданный успех)
+    └─ Error → 
+        Code (проверка обработки ошибки) →
+        Set (результат теста)
+</code></pre>
+
+<h2>7. Регрессионное тестирование</h2>
+
+<p>Сохранение и повторное выполнение тестов:</p>
+
+<pre><code>Schedule Trigger (еженедельно) →
+  Code (загрузка тестовых случаев) →
+  Loop (тестовые случаи) →
+    Execute Workflow (агент) →
+    Code (сравнение с baseline) →
+    Set (результат)
+  → Code (агрегация) →
+  HTTP Request (отчет)
+</code></pre>
+
+<h2>8. Валидация промптов</h2>
+
+<pre><code>Set (промпт) →
+  Code (проверка промпта) →
+  IF (промпт валиден?) →
+    ├─ True → HTTP Request
+    └─ False → Set (ошибка)
+</code></pre>
+
+<h3>Проверка промпта:</h3>
+<pre><code>const prompt = $input.first().json.prompt;
+
+const checks = {
+  length: prompt.length > 0 && prompt.length < 10000,
+  hasContent: prompt.trim().length > 0,
+  noSensitiveData: !prompt.match(/(password|api_key|secret)/i)
+};
+
+const valid = Object.values(checks).every(v => v === true);
+
+return [{
+  json: {
+    valid: valid,
+    checks: checks
+  }
+}];
+</code></pre>
+
+<h2>9. Тестирование контекста</h2>
+
+<pre><code>Manual Trigger →
+  Set (тестовый контекст) →
+  Agent (с контекстом) →
+  Code (проверка использования контекста) →
+  Set (результат)
+</code></pre>
+
+<h2>10. A/B тестирование агентов</h2>
+
+<pre><code>Input →
+  Split →
+    ├─ Agent A (версия 1)
+    └─ Agent B (версия 2)
+  → Merge →
+  Code (сравнение результатов) →
+  Set (лучший результат)
+</code></pre>
+
+<h2>11. Автоматический тестовый набор</h2>
+
+<p>Создайте workflow для автоматического запуска всех тестов:</p>
+
+<pre><code>Schedule Trigger →
+  Code (загрузка всех тестов) →
+  Loop (тесты) →
+    Execute Workflow (тест) →
+    Set (результат теста)
+  → Code (агрегация результатов) →
+  HTTP Request (отчет) →
+  IF (есть проваленные тесты?) →
+    ├─ True → HTTP Request (уведомление)
+    └─ False → Set (все тесты прошли)
+</code></pre>
+
+<h2>12. Валидация производительности</h2>
+
+<pre><code>Set (start_time) →
+  Agent →
+  Set (end_time) →
+  Code (проверка производительности) →
+  IF (в пределах нормы?) →
+    ├─ True → Continue
+    └─ False → Set (предупреждение)
+</code></pre>
+
+<h3>Проверка:</h3>
+<pre><code>const duration = $now.diff($("Start Time").item.json.start);
+const maxDuration = 10000; // 10 секунд
+
+return [{
+  json: {
+    duration: duration,
+    withinLimit: duration < maxDuration,
+    performance: duration < maxDuration ? "good" : "slow"
+  }
+}];
+</code></pre>
+
+<h2>13. Валидация безопасности</h2>
+
+<pre><code>Input →
+  Code (проверка безопасности) →
+  IF (безопасно?) →
+    ├─ True → Continue
+    └─ False → Set (блокировка)
+</code></pre>
+
+<h3>Проверки безопасности:</h3>
+<pre><code>const input = $input.first().json;
+
+const securityChecks = {
+  noInjection: !input.data?.match(/[<>\"']/),
+  noSensitiveData: !JSON.stringify(input).match(/(password|token|key)/i),
+  sizeLimit: JSON.stringify(input).length < 100000
+};
+
+return [{
+  json: {
+    secure: Object.values(securityChecks).every(v => v),
+    checks: securityChecks
+  }
+}];
+</code></pre>
+
+<h2>14. Best Practices</h2>
+
+<ul>
+    <li>Пишите тесты для каждого агента</li>
+    <li>Используйте автоматическое тестирование</li>
+    <li>Валидируйте входные и выходные данные</li>
+    <li>Тестируйте обработку ошибок</li>
+    <li>Проводите нагрузочное тестирование</li>
+    <li>Используйте регрессионное тестирование</li>
+    <li>Документируйте тестовые случаи</li>
+    <li>Автоматизируйте запуск тестов</li>
+</ul>
+
+<h2>15. Метрики качества</h2>
+
+<ul>
+    <li><strong>Покрытие тестами</strong> — процент покрытия кода тестами</li>
+    <li><strong>Успешность тестов</strong> — процент прошедших тестов</li>
+    <li><strong>Время выполнения</strong> — производительность</li>
+    <li><strong>Точность результатов</strong> — соответствие ожиданиям</li>
+</ul>
+
+<p>В следующем уроке мы изучим оптимизацию производительности.</p>
+

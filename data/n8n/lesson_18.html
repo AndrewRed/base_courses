@@ -1,0 +1,318 @@
+<h1>Оркестрация workflow для агентов</h1>
+
+<p>Оркестрация — это координация работы множества агентов для выполнения сложных задач. Создадим систему оркестрации в n8n.</p>
+
+<h2>1. Простой оркестратор</h2>
+
+<p>Базовый оркестратор, который последовательно запускает агентов:</p>
+
+<pre><code>Webhook (задача) →
+  Orchestrator Node →
+    Execute Workflow (Agent 1) →
+    Set (обработка результата) →
+    Execute Workflow (Agent 2) →
+    Set (обработка результата) →
+    Execute Workflow (Agent 3) →
+    Set (финальный результат)
+</code></pre>
+
+<h3>Оркестратор Node (Code):</h3>
+<pre><code>const task = $input.first().json;
+const workflow = [];
+
+// Определяем последовательность агентов
+const agents = ["Analyst Agent", "Writer Agent", "Reviewer Agent"];
+
+// Формируем план выполнения
+for (const agent of agents) {
+  workflow.push({
+    agent: agent,
+    input: task,
+    status: "pending"
+  });
+}
+
+return [{
+  json: {
+    task: task,
+    workflow: workflow,
+    current_step: 0
+  }
+}];
+</code></pre>
+
+<h2>2. Условная оркестрация</h2>
+
+<p>Оркестратор выбирает агентов на основе условий:</p>
+
+<pre><code>Webhook (задача) →
+  Code (анализ задачи) →
+  Switch (тип задачи) →
+    ├─ "analysis" → 
+    │   Execute Workflow (Analyst Agent) →
+    │   Execute Workflow (Report Agent)
+    ├─ "generation" →
+    │   Execute Workflow (Writer Agent) →
+    │   Execute Workflow (Editor Agent)
+    └─ "validation" →
+        Execute Workflow (Validator Agent)
+  → Merge →
+  Final Result
+</code></pre>
+
+<h2>3. Параллельная оркестрация</h2>
+
+<p>Запуск нескольких агентов параллельно:</p>
+
+<pre><code>Webhook →
+  Split →
+    ├─ Execute Workflow (Agent 1)
+    ├─ Execute Workflow (Agent 2)
+    └─ Execute Workflow (Agent 3)
+  → Merge →
+  Code (агрегация результатов) →
+  Final Agent
+</code></pre>
+
+<h3>Агрегация результатов:</h3>
+<pre><code>const results = $input.all();
+const aggregated = {
+  agent1: results.find(r => r.json.agent === "Agent 1")?.json.result,
+  agent2: results.find(r => r.json.agent === "Agent 2")?.json.result,
+  agent3: results.find(r => r.json.agent === "Agent 3")?.json.result,
+  timestamp: new Date().toISOString()
+};
+
+return [{
+  json: {
+    aggregated: aggregated,
+    success: true
+  }
+}];
+</code></pre>
+
+<h2>4. Динамическая оркестрация</h2>
+
+<p>Оркестратор определяет последовательность на лету:</p>
+
+<pre><code>Webhook →
+  Code (планирование) →
+  Loop (выполнение плана) →
+    Execute Workflow (динамический выбор агента) →
+    Code (оценка результата) →
+    IF (нужен следующий шаг?) →
+      ├─ True → Continue Loop
+      └─ False → Break Loop
+  → Final Result
+</code></pre>
+
+<h3>Планирование:</h3>
+<pre><code>const task = $input.first().json;
+const plan = [];
+
+// Анализируем задачу и создаем план
+if (task.complexity === "high") {
+  plan.push("Analyst Agent");
+  plan.push("Researcher Agent");
+  plan.push("Synthesizer Agent");
+} else {
+  plan.push("General Agent");
+}
+
+return [{
+  json: {
+    plan: plan,
+    current_index: 0,
+    results: []
+  }
+}];
+</code></pre>
+
+<h2>5. Оркестратор с состоянием</h2>
+
+<p>Отслеживание состояния выполнения:</p>
+
+<pre><code>Webhook →
+  Database (создание сессии) →
+  Loop (выполнение шагов) →
+    Database (чтение состояния) →
+    Execute Workflow (агент) →
+    Database (обновление состояния) →
+    IF (все шаги выполнены?) →
+      ├─ True → Break
+      └─ False → Continue
+  → Database (финализация) →
+  Final Result
+</code></pre>
+
+<h3>Структура состояния:</h3>
+<pre><code>{
+  "session_id": "abc123",
+  "status": "in_progress",
+  "steps": [
+    {"agent": "Analyst", "status": "completed", "result": "..."},
+    {"agent": "Writer", "status": "in_progress"},
+    {"agent": "Reviewer", "status": "pending"}
+  ],
+  "current_step": 1
+}
+</code></pre>
+
+<h2>6. Оркестратор с обработкой ошибок</h2>
+
+<pre><code>Execute Workflow (Agent) →
+    ├─ Success → 
+        Set (успех) →
+        Continue
+    └─ Error →
+        IF (критическая ошибка?) →
+          ├─ True → 
+              Set (прерывание) →
+              Error Handler
+          └─ False →
+              Set (fallback агент) →
+              Execute Workflow (Fallback Agent)
+</code></pre>
+
+<h2>7. Вложенная оркестрация</h2>
+
+<p>Агенты могут сами быть оркестраторами:</p>
+
+<pre><code>Main Orchestrator →
+  Execute Workflow (Sub-Orchestrator 1) →
+    ├─ Agent A
+    ├─ Agent B
+    └─ Agent C
+  Execute Workflow (Sub-Orchestrator 2) →
+    ├─ Agent D
+    └─ Agent E
+  → Merge →
+  Final Orchestrator
+</code></pre>
+
+<h2>8. Оркестратор с приоритетами</h2>
+
+<p>Выполнение агентов по приоритету:</p>
+
+<pre><code>Webhook →
+  Code (сортировка по приоритету) →
+  Loop (выполнение по приоритету) →
+    Execute Workflow (агент) →
+    IF (критический агент завершился с ошибкой?) →
+      ├─ True → Abort All
+      └─ False → Continue
+</code></pre>
+
+<h3>Сортировка:</h3>
+<pre><code>const agents = $input.first().json.agents;
+
+agents.sort((a, b) => {
+  if (a.priority === "critical" && b.priority !== "critical") return -1;
+  if (a.priority !== "critical" && b.priority === "critical") return 1;
+  return a.order - b.order;
+});
+
+return [{
+  json: {
+    sorted_agents: agents
+  }
+}];
+</code></pre>
+
+<h2>9. Оркестратор с мониторингом</h2>
+
+<p>Отслеживание производительности каждого агента:</p>
+
+<pre><code>Execute Workflow (Agent) →
+  Set (start_time) →
+  [Выполнение] →
+  Set (end_time) →
+  Code (метрики) →
+  Database (сохранение метрик)
+</code></pre>
+
+<h3>Метрики:</h3>
+<pre><code>const startTime = new Date($("Start Time").item.json.timestamp);
+const endTime = new Date($input.first().json.timestamp);
+const duration = endTime - startTime;
+
+return [{
+  json: {
+    agent: $input.first().json.agent,
+    duration: duration,
+    tokens_used: $input.first().json.tokens_used,
+    success: $input.first().json.success
+  }
+}];
+</code></pre>
+
+<h2>10. Оркестратор с retry логикой</h2>
+
+<pre><code>Execute Workflow (Agent) →
+    ├─ Success → Continue
+    └─ Error →
+        Set (retry_count) →
+        IF (retry_count < 3) →
+          ├─ True → 
+              Wait (5 секунд) →
+              Execute Workflow (Agent) [Retry]
+          └─ False →
+              Set (fallback) →
+              Execute Workflow (Fallback Agent)
+</code></pre>
+
+<h2>11. Пример полного оркестратора</h2>
+
+<pre><code>Webhook (задача) →
+  Code (валидация задачи) →
+  IF (валидна?) →
+    ├─ True →
+        Database (создание сессии) →
+        Code (планирование) →
+        Loop (выполнение плана) →
+          Database (чтение состояния) →
+          Execute Workflow (агент) →
+            ├─ Success →
+                Database (обновление состояния) →
+                Code (проверка завершения) →
+                IF (завершено?) →
+                  ├─ True → Break
+                  └─ False → Continue
+            └─ Error →
+                Code (обработка ошибки) →
+                IF (критическая?) →
+                  ├─ True → Abort
+                  └─ False → Retry
+        → Database (финализация) →
+        Set (результат)
+    └─ False →
+        Set (ошибка валидации)
+</code></pre>
+
+<h2>12. Best Practices</h2>
+
+<ul>
+    <li>Используйте четкую структуру для оркестрации</li>
+    <li>Отслеживайте состояние выполнения</li>
+    <li>Обрабатывайте ошибки на каждом уровне</li>
+    <li>Логируйте все шаги оркестрации</li>
+    <li>Используйте таймауты для агентов</li>
+    <li>Реализуйте механизмы отката (rollback)</li>
+    <li>Мониторьте производительность</li>
+    <li>Документируйте логику оркестрации</li>
+    <li>Тестируйте сценарии ошибок</li>
+    <li>Используйте идемпотентность где возможно</li>
+</ul>
+
+<h2>13. Оптимизация оркестрации</h2>
+
+<ul>
+    <li>Параллелизуйте независимые агенты</li>
+    <li>Кэшируйте результаты где возможно</li>
+    <li>Используйте батчинг для множественных задач</li>
+    <li>Оптимизируйте порядок выполнения</li>
+    <li>Минимизируйте передачу данных</li>
+</ul>
+
+<p>В следующем разделе мы изучим быстрое прототипирование мультиагентных систем.</p>
+

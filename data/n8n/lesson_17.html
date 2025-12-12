@@ -1,0 +1,294 @@
+<h1>Коммуникация между агентами</h1>
+
+<p>Эффективная коммуникация между агентами — основа мультиагентных систем. Изучим различные способы обмена данными.</p>
+
+<h2>1. Прямая передача данных</h2>
+
+<p>Самый простой способ — передача данных напрямую между нодами:</p>
+
+<pre><code>Agent 1 → Set (форматирование) → Agent 2 → Agent 3
+</code></pre>
+
+<h3>Пример:</h3>
+<pre><code>Analyst Agent → 
+  Set (подготовка для Writer) → 
+  Writer Agent → 
+  Set (подготовка для Reviewer) → 
+  Reviewer Agent
+</code></pre>
+
+<h3>Форматирование данных между агентами:</h3>
+<pre><code>{
+  "from_agent": "Analyst Agent",
+  "to_agent": "Writer Agent",
+  "data": {
+    "analysis": "{{ $json.analysis }}",
+    "key_points": "{{ $json.key_points }}"
+  },
+  "metadata": {
+    "timestamp": "{{ $now }}",
+    "session_id": "{{ $json.session_id }}"
+  }
+}
+</code></pre>
+
+<h2>2. Использование Execute Workflow</h2>
+
+<p>Вызов одного workflow из другого с передачей данных:</p>
+
+<pre><code>Main Workflow →
+  Execute Workflow (Agent 1) →
+  Set (обработка результата) →
+  Execute Workflow (Agent 2) →
+  Merge →
+  Final Agent
+</code></pre>
+
+<h3>Передача параметров:</h3>
+<pre><code>// В Execute Workflow ноде
+{
+  "input_data": "{{ $json.result }}",
+  "context": "{{ $json.context }}",
+  "config": {
+    "temperature": 0.7
+  }
+}
+</code></pre>
+
+<h2>3. Очередь сообщений</h2>
+
+<p>Использование очереди для асинхронной коммуникации:</p>
+
+<pre><code>Agent 1 → 
+  Set (сообщение) → 
+  HTTP Request (добавление в очередь) →
+  
+[Отдельный workflow]
+Schedule Trigger → 
+  HTTP Request (чтение из очереди) →
+  Agent 2 (обработка)
+</code></pre>
+
+<h3>Структура сообщения:</h3>
+<pre><code>{
+  "message_id": "{{ $executionId }}",
+  "from": "Agent 1",
+  "to": "Agent 2",
+  "payload": {
+    "data": "{{ $json.data }}"
+  },
+  "timestamp": "{{ $now }}",
+  "priority": "normal"
+}
+</code></pre>
+
+<h2>4. Публикация/Подписка (Pub/Sub)</h2>
+
+<p>Агенты подписываются на события:</p>
+
+<pre><code>Agent 1 → 
+  Set (событие) → 
+  HTTP Request (публикация) →
+  
+[Подписчики]
+Webhook (событие) →
+  IF (тип события) →
+    ├─ "analysis_complete" → Agent 2
+    ├─ "validation_complete" → Agent 3
+    └─ "generation_complete" → Agent 4
+</code></pre>
+
+<h2>5. Общее хранилище состояния</h2>
+
+<p>Использование базы данных для общего состояния:</p>
+
+<pre><code>Agent 1 → 
+  Database (сохранение результата) →
+  
+Agent 2 → 
+  Database (чтение состояния) →
+  Set (обработка) →
+  Database (обновление)
+</code></pre>
+
+<h3>Структура состояния:</h3>
+<pre><code>{
+  "session_id": "abc123",
+  "state": {
+    "step": 2,
+    "data": {...},
+    "agents": {
+      "analyst": {"status": "completed", "result": "..."},
+      "writer": {"status": "in_progress"}
+    }
+  }
+}
+</code></pre>
+
+<h2>6. Цепочка агентов с обратной связью</h2>
+
+<p>Агенты могут запрашивать дополнительную информацию:</p>
+
+<pre><code>Agent 1 → 
+  IF (нужна дополнительная информация?) →
+    ├─ True → 
+        Set (запрос) → 
+        Agent 2 (получение данных) →
+        Merge → Agent 1 (повторная обработка)
+    └─ False → Agent 3
+</code></pre>
+
+<h2>7. Параллельная коммуникация</h2>
+
+<p>Несколько агентов работают параллельно и объединяют результаты:</p>
+
+<pre><code>Input → Split →
+  ├─ Agent 1 (анализ данных)
+  ├─ Agent 2 (поиск паттернов)
+  └─ Agent 3 (валидация)
+→ Merge →
+Agent 4 (синтез результатов)
+</code></pre>
+
+<h3>Объединение результатов:</h3>
+<pre><code>// В ноде Code после Merge
+const items = $input.all();
+const results = {
+  analysis: items.find(i => i.json.agent === "Analyst").json.result,
+  patterns: items.find(i => i.json.agent === "Pattern Finder").json.result,
+  validation: items.find(i => i.json.agent === "Validator").json.result
+};
+
+return [{
+  json: {
+    combined: results,
+    timestamp: new Date().toISOString()
+  }
+}];
+</code></pre>
+
+<h2>8. Коммуникация через Webhook</h2>
+
+<p>Агенты могут вызывать друг друга через webhooks:</p>
+
+<pre><code>Agent 1 → 
+  HTTP Request (webhook Agent 2) →
+  
+Agent 2 (Webhook trigger) →
+  Set (обработка) →
+  HTTP Request (webhook Agent 3)
+</code></pre>
+
+<h3>Вызов через webhook:</h3>
+<pre><code>{
+  "from": "Agent 1",
+  "data": "{{ $json.result }}",
+  "context": "{{ $json.context }}"
+}
+</code></pre>
+
+<h2>9. Синхронизация агентов</h2>
+
+<p>Ожидание завершения нескольких агентов:</p>
+
+<pre><code>Start → 
+  Split →
+    ├─ Agent 1
+    ├─ Agent 2
+    └─ Agent 3
+  → Merge →
+  Wait (все завершены) →
+  Final Agent
+</code></pre>
+
+<h2>10. Обработка конфликтов</h2>
+
+<p>Когда агенты дают противоречивые результаты:</p>
+
+<pre><code>Agent 1 → 
+  Merge ← Agent 2
+  → 
+  Conflict Resolver Agent →
+  Final Result
+</code></pre>
+
+<h3>Conflict Resolver:</h3>
+<pre><code>// Системный промпт
+Ты арбитр, который разрешает конфликты между результатами разных агентов. 
+Проанализируй оба результата и предоставь согласованное решение.
+
+Результат Agent 1: {{ $json.agent1_result }}
+Результат Agent 2: {{ $json.agent2_result }}
+</code></pre>
+
+<h2>11. Маршрутизация сообщений</h2>
+
+<p>Умная маршрутизация на основе содержимого:</p>
+
+<pre><code>Input → 
+  Code (анализ содержимого) →
+  Switch (тип сообщения) →
+    ├─ "analysis" → Analyst Agent
+    ├─ "generation" → Writer Agent
+    ├─ "validation" → Validator Agent
+    └─ "other" → General Agent
+</code></pre>
+
+<h2>12. Логирование коммуникации</h2>
+
+<p>Отслеживание всех взаимодействий:</p>
+
+<pre><code>Agent 1 → 
+  Set (логирование отправки) →
+  Database (сохранение лога) →
+  Agent 2 →
+  Set (логирование получения) →
+  Database (обновление лога)
+</code></pre>
+
+<h3>Структура лога:</h3>
+<pre><code>{
+  "message_id": "{{ $executionId }}",
+  "from": "Agent 1",
+  "to": "Agent 2",
+  "timestamp": "{{ $now }}",
+  "data_size": "{{ $json.data.length }}",
+  "status": "sent"
+}
+</code></pre>
+
+<h2>13. Best Practices</h2>
+
+<ul>
+    <li>Используйте стандартизированный формат сообщений</li>
+    <li>Добавляйте метаданные к каждому сообщению</li>
+    <li>Логируйте все взаимодействия</li>
+    <li>Обрабатывайте ошибки коммуникации</li>
+    <li>Используйте таймауты для асинхронных операций</li>
+    <li>Валидируйте данные перед передачей</li>
+    <li>Используйте версионирование форматов сообщений</li>
+    <li>Документируйте протоколы коммуникации</li>
+</ul>
+
+<h2>14. Пример полной системы</h2>
+
+<pre><code>Webhook (задача) →
+  Orchestrator →
+    Split →
+      ├─ Analyst Agent → 
+      │   Set (результат) →
+      │   Database (сохранение)
+      ├─ Researcher Agent →
+      │   Set (результат) →
+      │   Database (сохранение)
+      └─ Validator Agent →
+          Set (результат) →
+          Database (сохранение)
+    → Merge →
+    Database (чтение всех результатов) →
+    Synthesizer Agent →
+    Final Result
+</code></pre>
+
+<p>В следующем уроке мы изучим оркестрацию workflow для агентов.</p>
+

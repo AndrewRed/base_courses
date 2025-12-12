@@ -1,0 +1,265 @@
+<h1>Отладка мультиагентных систем</h1>
+
+<p>Отладка мультиагентных систем сложнее, чем одиночных workflow. Изучим техники и инструменты для эффективной отладки.</p>
+
+<h2>1. Логирование на каждом этапе</h2>
+
+<p>Добавьте логирование в каждую критическую точку:</p>
+
+<pre><code>Agent →
+  Set (логирование входа) →
+  Database (сохранение лога) →
+  [Обработка] →
+  Set (логирование выхода) →
+  Database (обновление лога)
+</code></pre>
+
+<h3>Структура лога:</h3>
+<pre><code>{
+  "execution_id": "{{ $executionId }}",
+  "agent": "Analyst Agent",
+  "step": "input",
+  "data": "{{ JSON.stringify($json) }}",
+  "timestamp": "{{ $now }}"
+}
+</code></pre>
+
+<h2>2. Визуализация потока данных</h2>
+
+<p>Создайте workflow для визуализации:</p>
+
+<pre><code>Main Workflow →
+  Set (метаданные шага) →
+  HTTP Request (логирование в систему визуализации) →
+  [Продолжение выполнения]
+</code></pre>
+
+<h2>3. Точки останова (Breakpoints)</h2>
+
+<p>Используйте IF ноды как точки останова:</p>
+
+<pre><code>Agent →
+  IF (debug_mode === true) →
+    ├─ True → 
+        Set (пауза для проверки) →
+        Wait (ручное продолжение)
+    └─ False → Continue
+</code></pre>
+
+<h2>4. Проверка данных между агентами</h2>
+
+<pre><code>Agent 1 →
+  Set (валидация выходных данных) →
+  IF (данные корректны?) →
+    ├─ True → Agent 2
+    └─ False →
+        Set (ошибка валидации) →
+        Code (детальное логирование)
+</code></pre>
+
+<h3>Валидация:</h3>
+<pre><code>const data = $input.first().json;
+
+const errors = [];
+
+if (!data.result) {
+  errors.push("Отсутствует поле 'result'");
+}
+
+if (data.result && typeof data.result !== "string") {
+  errors.push("Поле 'result' должно быть строкой");
+}
+
+return [{
+  json: {
+    valid: errors.length === 0,
+    errors: errors,
+    data: data
+  }
+}];
+</code></pre>
+
+<h2>5. Трассировка выполнения</h2>
+
+<p>Отслеживание полного пути выполнения:</p>
+
+<pre><code>Webhook →
+  Set (инициализация трассировки) →
+  Database (создание trace) →
+  
+[Каждый агент]
+  Set (добавление в trace) →
+  Database (обновление trace) →
+  
+[В конце]
+  Database (чтение полного trace) →
+  Set (визуализация пути)
+</code></pre>
+
+<h2>6. Изоляция проблем</h2>
+
+<p>Тестирование агентов изолированно:</p>
+
+<pre><code>Manual Trigger →
+  Set (тестовые данные) →
+  Execute Workflow (проблемный агент) →
+  Set (проверка результата)
+</code></pre>
+
+<h2>7. Сравнение ожидаемого и фактического</h2>
+
+<pre><code>Agent →
+  Set (фактический результат) →
+  Set (ожидаемый результат) →
+  Code (сравнение) →
+  Set (различия)
+</code></pre>
+
+<h3>Сравнение:</h3>
+<pre><code>const actual = $("Actual Result").item.json;
+const expected = $("Expected Result").item.json;
+
+const differences = [];
+
+// Сравнение полей
+for (const key in expected) {
+  if (actual[key] !== expected[key]) {
+    differences.push({
+      field: key,
+      expected: expected[key],
+      actual: actual[key]
+    });
+  }
+}
+
+return [{
+  json: {
+    matches: differences.length === 0,
+    differences: differences
+  }
+}];
+</code></pre>
+
+<h2>8. Мониторинг производительности</h2>
+
+<pre><code>Set (start_time) →
+  Agent →
+  Set (end_time) →
+  Code (расчет производительности) →
+  Database (сохранение метрик)
+</code></pre>
+
+<h3>Метрики:</h3>
+<pre><code>const start = new Date($("Start Time").item.json.timestamp);
+const end = new Date($input.first().json.timestamp);
+const duration = end - start;
+
+return [{
+  json: {
+    agent: $input.first().json.agent,
+    duration_ms: duration,
+    duration_seconds: duration / 1000,
+    performance: duration < 5000 ? "good" : "slow"
+  }
+}];
+</code></pre>
+
+<h2>9. Отладка коммуникации</h2>
+
+<p>Логирование всех сообщений между агентами:</p>
+
+<pre><code>Agent 1 →
+  Set (сообщение для Agent 2) →
+  Code (логирование отправки) →
+  Agent 2 →
+  Set (полученное сообщение) →
+  Code (логирование получения) →
+  Code (сравнение отправленного и полученного)
+</code></pre>
+
+<h2>10. Воспроизведение ошибок</h2>
+
+<p>Сохранение состояния при ошибке для воспроизведения:</p>
+
+<pre><code>Agent →
+    ├─ Success → Continue
+    └─ Error →
+        Set (сохранение состояния) →
+        Database (сохранение для воспроизведения) →
+        Code (создание тестового случая)
+</code></pre>
+
+<h3>Сохранение состояния:</h3>
+<pre><code>{
+  "error_id": "{{ $executionId }}",
+  "agent": "Analyst Agent",
+  "input_data": "{{ JSON.stringify($json.input) }}",
+  "error_message": "{{ $json.error.message }}",
+  "stack_trace": "{{ $json.error.stack }}",
+  "timestamp": "{{ $now }}"
+}
+</code></pre>
+
+<h2>11. Интерактивная отладка</h2>
+
+<p>Создайте workflow для интерактивной отладки:</p>
+
+<pre><code>Webhook (debug команда) →
+  Switch (команда) →
+    ├─ "inspect" → 
+        Code (чтение состояния) →
+        Set (возврат состояния)
+    ├─ "continue" →
+        Set (продолжение выполнения)
+    ├─ "step" →
+        Set (выполнить один шаг)
+    └─ "abort" →
+        Set (прерывание)
+</code></pre>
+
+<h2>12. Визуализация зависимостей</h2>
+
+<p>Создайте карту зависимостей агентов:</p>
+
+<pre><code>Code (анализ workflow) →
+  Set (граф зависимостей) →
+  HTTP Request (визуализация)
+</code></pre>
+
+<h2>13. Автоматическое тестирование</h2>
+
+<pre><code>Schedule Trigger (ежедневно) →
+  Code (загрузка тестовых случаев) →
+  Loop (тестовые случаи) →
+    Execute Workflow (агент) →
+    Code (проверка результата) →
+    Set (результат теста)
+  → Code (агрегация результатов) →
+  HTTP Request (отчет о тестах)
+</code></pre>
+
+<h2>14. Best Practices</h2>
+
+<ul>
+    <li>Логируйте все критичные точки</li>
+    <li>Используйте структурированное логирование</li>
+    <li>Тестируйте агентов изолированно</li>
+    <li>Сохраняйте состояние при ошибках</li>
+    <li>Используйте версионирование для отката</li>
+    <li>Документируйте известные проблемы</li>
+    <li>Создавайте тестовые случаи для багов</li>
+    <li>Мониторьте производительность постоянно</li>
+</ul>
+
+<h2>15. Инструменты отладки</h2>
+
+<ul>
+    <li><strong>Execution History</strong> — история выполнений в n8n</li>
+    <li><strong>Node Execution Data</strong> — данные на каждом этапе</li>
+    <li><strong>Workflow Logs</strong> — логи workflow</li>
+    <li><strong>External Logging</strong> — внешние системы логирования</li>
+    <li><strong>Database</strong> — хранение логов и метрик</li>
+</ul>
+
+<p>В следующем уроке мы изучим тестирование и валидацию.</p>
+

@@ -1,0 +1,277 @@
+<h1>Создание агентов в n8n</h1>
+
+<p>Создадим первого агента в n8n. Агент — это переиспользуемый компонент с собственной логикой и контекстом.</p>
+
+<h2>1. Базовый агент</h2>
+
+<p>Создадим простого агента-аналитика:</p>
+
+<pre><code>Webhook (входные данные) →
+  Set (системный промпт) →
+  Set (формирование запроса) →
+  HTTP Request (DeepSeek) →
+  Set (обработка ответа) →
+  [Возврат результата]
+</code></pre>
+
+<h3>Шаг 1: Создание workflow "Analyst Agent"</h3>
+
+<ol>
+    <li>Создайте новый workflow</li>
+    <li>Назовите его "Analyst Agent"</li>
+    <li>Добавьте Webhook как вход</li>
+</ol>
+
+<h3>Шаг 2: Настройка системного промпта</h3>
+
+<p>Нода Set (System Prompt):</p>
+<pre><code>{
+  "role": "system",
+  "content": "Ты опытный аналитик данных. Твоя задача — анализировать предоставленные данные и предоставлять структурированные выводы. Отвечай на русском языке, будь точным и конкретным."
+}
+</code></pre>
+
+<h3>Шаг 3: Формирование запроса</h3>
+
+<p>Нода Set (Request):</p>
+<pre><code>{
+  "model": "deepseek-chat",
+  "messages": [
+    {{ $("System Prompt").item.json }},
+    {
+      "role": "user",
+      "content": "Проанализируй следующие данные и предоставь выводы:\n\n{{ JSON.stringify($json.data) }}\n\nВопросы для анализа:\n1. Какие основные тренды?\n2. Есть ли аномалии?\n3. Какие рекомендации?"
+    }
+  ],
+  "temperature": 0.7,
+  "max_tokens": 2000
+}
+</code></pre>
+
+<h3>Шаг 4: HTTP Request к DeepSeek</h3>
+
+<ul>
+    <li>Method: POST</li>
+    <li>URL: <code>https://api.deepseek.com/v1/chat/completions</code></li>
+    <li>Headers: <code>Authorization: Bearer {{ $env.DEEPSEEK_API_KEY }}</code></li>
+    <li>Body: JSON из предыдущей ноды</li>
+</ul>
+
+<h3>Шаг 5: Обработка ответа</h3>
+
+<p>Нода Set (Response):</p>
+<pre><code>{
+  "agent": "Analyst Agent",
+  "analysis": "{{ $json.choices[0].message.content }}",
+  "tokens_used": {{ $json.usage.total_tokens }},
+  "timestamp": "{{ $now }}"
+}
+</code></pre>
+
+<h2>2. Агент с контекстом</h2>
+
+<p>Создадим агента, который помнит предыдущие взаимодействия:</p>
+
+<pre><code>Webhook (message, context) →
+  Set (объединение контекста) →
+  Set (формирование запроса с историей) →
+  HTTP Request →
+  Set (обновление контекста) →
+  [Возврат]
+</code></pre>
+
+<h3>Нода Set (объединение контекста):</h3>
+<pre><code>// В ноде Code
+const systemPrompt = {
+  role: "system",
+  content: $input.first().json.systemPrompt || "Ты полезный ассистент"
+};
+
+const history = $input.first().json.history || [];
+const newMessage = {
+  role: "user",
+  content: $input.first().json.message
+};
+
+// Ограничиваем историю последними 10 сообщениями
+const trimmedHistory = history.slice(-10);
+
+const messages = [systemPrompt, ...trimmedHistory, newMessage];
+
+return [{
+  json: {
+    messages: messages,
+    context: {
+      messageCount: messages.length,
+      lastActivity: new Date().toISOString()
+    }
+  }
+}];
+</code></pre>
+
+<h2>3. Специализированные агенты</h2>
+
+<h3>3.1. Агент-писатель</h3>
+
+<pre><code>Webhook (topic, style, length) →
+  Set (системный промпт писателя) →
+  Set (формирование промпта) →
+  HTTP Request →
+  Set (результат)
+</code></pre>
+
+<p>Системный промпт:</p>
+<pre><code>Ты профессиональный писатель. Создавай качественный контент в указанном стиле. Используй живую речь, избегай клише, будь оригинальным.
+</code></pre>
+
+<h3>3.2. Агент-валидатор</h3>
+
+<pre><code>Webhook (data, rules) →
+  Set (системный промпт валидатора) →
+  Set (формирование запроса) →
+  HTTP Request →
+  Code (парсинг результата) →
+  Set (валидация)
+</code></pre>
+
+<p>Системный промпт:</p>
+<pre><code>Ты валидатор данных. Проверяй данные на соответствие правилам. Возвращай результат в формате JSON: {"valid": true/false, "errors": []}
+</code></pre>
+
+<h3>3.3. Агент-переводчик</h3>
+
+<pre><code>Webhook (text, targetLanguage) →
+  Set (системный промпт переводчика) →
+  HTTP Request →
+  Set (перевод)
+</code></pre>
+
+<h2>4. Агент как под-workflow</h2>
+
+<p>Превратите агента в переиспользуемый под-workflow:</p>
+
+<ol>
+    <li>Сохраните workflow агента</li>
+    <li>В другом workflow используйте ноду "Execute Workflow"</li>
+    <li>Передавайте параметры через входные данные</li>
+</ol>
+
+<h3>Использование:</h3>
+<pre><code>Main Workflow →
+  Execute Workflow (Analyst Agent) →
+  Execute Workflow (Writer Agent) →
+  Execute Workflow (Reviewer Agent)
+</code></pre>
+
+<h2>5. Агент с обработкой ошибок</h2>
+
+<pre><code>Set (запрос) →
+  HTTP Request →
+    ├─ Success → Set (ответ)
+    └─ Error → 
+        Set (fallback ответ) →
+        Code (логирование ошибки)
+</code></pre>
+
+<h3>Fallback ответ:</h3>
+<pre><code>{
+  "agent": "Analyst Agent",
+  "status": "error",
+  "message": "Не удалось выполнить анализ. Попробуйте позже.",
+  "error": "{{ $json.error.message }}"
+}
+</code></pre>
+
+<h2>6. Агент с метриками</h2>
+
+<p>Добавьте отслеживание производительности:</p>
+
+<pre><code>Set (start time) →
+  HTTP Request →
+  Set (metrics) →
+  [Логирование]
+</code></pre>
+
+<h3>Метрики:</h3>
+<pre><code>{
+  "agent": "Analyst Agent",
+  "execution_time": {{ $now.diff($("Start Time").item.json.start) }},
+  "tokens_used": {{ $json.usage.total_tokens }},
+  "cost_estimate": {{ $json.usage.total_tokens * 0.0001 }},
+  "success": true
+}
+</code></pre>
+
+<h2>7. Агент с кэшированием</h2>
+
+<pre><code>Webhook →
+  Code (хеш входных данных) →
+  Code (проверка кэша) →
+  IF (есть в кэше?) →
+    ├─ True → Set (из кэша)
+    └─ False → HTTP Request → 
+        Code (сохранение в кэш)
+</code></pre>
+
+<h2>8. Конфигурируемый агент</h2>
+
+<p>Агент с настраиваемыми параметрами:</p>
+
+<pre><code>Webhook (config, data) →
+  Set (применение конфигурации) →
+  HTTP Request →
+  Set (результат)
+</code></pre>
+
+<h3>Конфигурация:</h3>
+<pre><code>{
+  "systemPrompt": "Кастомный системный промпт",
+  "temperature": 0.9,
+  "maxTokens": 3000,
+  "model": "deepseek-chat"
+}
+</code></pre>
+
+<h2>9. Тестирование агента</h2>
+
+<p>Создайте тестовый workflow:</p>
+
+<pre><code>Manual Trigger →
+  Set (тестовые данные) →
+  Execute Workflow (Analyst Agent) →
+  Set (проверка результата)
+</code></pre>
+
+<h2>10. Best Practices</h2>
+
+<ul>
+    <li>Используйте понятные имена для агентов</li>
+    <li>Создавайте специализированных агентов</li>
+    <li>Документируйте входные и выходные данные</li>
+    <li>Обрабатывайте ошибки</li>
+    <li>Логируйте выполнение</li>
+    <li>Тестируйте изолированно</li>
+    <li>Используйте версионирование</li>
+    <li>Ограничивайте контекст</li>
+</ul>
+
+<h2>11. Пример полного агента</h2>
+
+<pre><code>Webhook →
+  Set (валидация входных данных) →
+  IF (валидны?) →
+    ├─ True → 
+        Set (системный промпт) →
+        Set (формирование запроса) →
+        HTTP Request →
+          ├─ Success → 
+              Code (парсинг ответа) →
+              Set (результат)
+          └─ Error → 
+              Set (fallback) →
+              Code (логирование)
+    └─ False → Set (ошибка валидации)
+</code></pre>
+
+<p>В следующем уроке мы изучим коммуникацию между агентами.</p>
+

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Курс по n8n - от установки до продвинутого использования">
+    <title>Курс по n8n</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="index.html" class="logo-link">
+                    <h1 class="logo">Курсы</h1>
+                </a>
+                <nav class="nav">
+                    <a href="index.html" class="nav-link">Главная</a>
+                    <a href="course-n8n.html" class="nav-link active">Курс по n8n</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="course-main">
+        <div class="course-container">
+            <aside class="course-sidebar">
+                <div class="course-progress">
+                    <h3>Прогресс курса</h3>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="courseProgress"></div>
+                    </div>
+                    <span class="progress-text" id="progressText">0%</span>
+                </div>
+                
+                <nav class="course-nav">
+                    <h3>Содержание курса</h3>
+                    <ul class="course-sections" id="courseSections">
+                        <!-- Будет заполнено через JavaScript -->
+                    </ul>
+                </nav>
+            </aside>
+
+            <div class="course-content">
+                <div id="lessonContent" class="lesson-content">
+                    <div class="lesson-placeholder">
+                        <h2>Выберите урок из меню слева</h2>
+                        <p>Начните обучение, выбрав раздел и урок из навигации.</p>
+                    </div>
+                </div>
+                
+                <div class="lesson-navigation" id="lessonNavigation" style="display: none;">
+                    <button class="nav-button prev-button" id="prevLesson">← Предыдущий урок</button>
+                    <button class="nav-button next-button" id="nextLesson">Следующий урок →</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 Курсы обучения. Все права защищены.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
+

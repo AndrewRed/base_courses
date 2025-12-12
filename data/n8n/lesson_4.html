@@ -1,0 +1,134 @@
+<h1>Установка n8n</h1>
+
+<p>Существует несколько способов установки n8n. Выберите наиболее подходящий для вашего случая.</p>
+
+<h2>1. Установка через Docker (Рекомендуется)</h2>
+
+<p>Docker — самый простой и надежный способ установки n8n.</p>
+
+<h3>Базовая установка</h3>
+
+<pre><code>docker run -it --rm \
+  --name n8n \
+  -p 5678:5678 \
+  -v ~/.n8n:/home/node/.n8n \
+  n8nio/n8n
+</code></pre>
+
+<h3>Установка с постоянным хранением данных</h3>
+
+<pre><code>docker run -d \
+  --name n8n \
+  -p 5678:5678 \
+  -v ~/.n8n:/home/node/.n8n \
+  -e N8N_BASIC_AUTH_ACTIVE=true \
+  -e N8N_BASIC_AUTH_USER=admin \
+  -e N8N_BASIC_AUTH_PASSWORD=your_password \
+  n8nio/n8n
+</code></pre>
+
+<h3>Использование Docker Compose</h3>
+
+<p>Создайте файл <code>docker-compose.yml</code>:</p>
+
+<pre><code>version: '3.8'
+
+services:
+  n8n:
+    image: n8nio/n8n
+    container_name: n8n
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=your_secure_password
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+    volumes:
+      - ~/.n8n:/home/node/.n8n
+    restart: unless-stopped
+</code></pre>
+
+<p>Запуск:</p>
+<pre><code>docker-compose up -d
+</code></pre>
+
+<h2>2. Установка через npm</h2>
+
+<p>Если у вас установлен Node.js, можно установить n8n глобально:</p>
+
+<pre><code>npm install n8n -g
+</code></pre>
+
+<p>Запуск:</p>
+<pre><code>n8n start
+</code></pre>
+
+<h2>3. Облачная версия</h2>
+
+<p>n8n также доступен в облаке на <a href="https://n8n.io" target="_blank">n8n.io</a>. Это удобно для быстрого старта, но имеет ограничения бесплатного плана.</p>
+
+<h2>4. Установка на сервер</h2>
+
+<h3>Требования</h3>
+<ul>
+    <li>Node.js 18.x или выше</li>
+    <li>Минимум 2GB RAM</li>
+    <li>Свободное место на диске для данных</li>
+</ul>
+
+<h3>Шаги установки</h3>
+
+<pre><code># Установка Node.js (если не установлен)
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# Установка n8n
+sudo npm install n8n -g
+
+# Создание systemd service
+sudo nano /etc/systemd/system/n8n.service
+</code></pre>
+
+<p>Содержимое файла service:</p>
+
+<pre><code>[Unit]
+Description=n8n workflow automation
+After=network.target
+
+[Service]
+Type=simple
+User=your_user
+ExecStart=/usr/bin/n8n start
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+</code></pre>
+
+<p>Запуск сервиса:</p>
+<pre><code>sudo systemctl enable n8n
+sudo systemctl start n8n
+</code></pre>
+
+<h2>Проверка установки</h2>
+
+<p>После установки откройте браузер и перейдите по адресу:</p>
+<pre><code>http://localhost:5678
+</code></pre>
+
+<p>Вы должны увидеть страницу приветствия n8n, где можно создать учетную запись.</p>
+
+<h2>Рекомендации</h2>
+
+<ul>
+    <li>Для разработки и тестирования используйте Docker</li>
+    <li>Для production используйте Docker Compose с правильной настройкой безопасности</li>
+    <li>Обязательно настройте базовую аутентификацию для production</li>
+    <li>Настройте регулярное резервное копирование данных</li>
+</ul>
+
+<p>В следующем уроке мы настроим n8n для работы.</p>
+

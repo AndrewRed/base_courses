@@ -1,0 +1,166 @@
+<h1>Параллельная обработка</h1>
+
+<p>Параллельная обработка позволяет значительно ускорить выполнение workflow. Изучим техники параллелизации в n8n.</p>
+
+<h2>1. Базовая параллельная обработка</h2>
+
+<p>Использование Split для параллельного выполнения:</p>
+
+<pre><code>Input →
+  Split →
+    ├─ Agent 1
+    ├─ Agent 2
+    └─ Agent 3
+  → Merge →
+  Final Processing
+</code></pre>
+
+<h2>2. Параллельная обработка массива</h2>
+
+<pre><code>Input (массив данных) →
+  Split In Batches (размер: 1) →
+  Agent (обработка каждого элемента) →
+  Merge →
+  Aggregation
+</code></pre>
+
+<h3>Обработка каждого элемента:</h3>
+<pre><code>// Каждый элемент обрабатывается параллельно
+const items = $input.all();
+
+return items.map(item => ({
+  json: {
+    processed: true,
+    original: item.json,
+    result: processItem(item.json)
+  }
+}));
+</code></pre>
+
+<h2>3. Параллельные запросы к API</h2>
+
+<pre><code>Input →
+  Split →
+    ├─ HTTP Request (API 1)
+    ├─ HTTP Request (API 2)
+    └─ HTTP Request (API 3)
+  → Merge →
+  Code (объединение результатов)
+</code></pre>
+
+<h2>4. Параллельная обработка с ограничением</h2>
+
+<p>Ограничение количества одновременных запросов:</p>
+
+<pre><code>Input →
+  Split In Batches (размер: 5) →
+  Agent (обработка батча) →
+  Merge
+</code></pre>
+
+<h2>5. Параллельная обработка с приоритетами</h2>
+
+<pre><code>Input →
+  Code (сортировка по приоритету) →
+  Split →
+    ├─ High Priority Agent
+    ├─ Medium Priority Agent
+    └─ Low Priority Agent
+  → Merge →
+  Code (объединение по приоритету)
+</code></pre>
+
+<h2>6. Параллельная обработка с синхронизацией</h2>
+
+<pre><code>Input →
+  Split →
+    ├─ Agent 1
+    ├─ Agent 2
+    └─ Agent 3
+  → Merge →
+  Wait (все завершены) →
+  Final Agent
+</code></pre>
+
+<h2>7. Параллельная обработка с условиями</h2>
+
+<pre><code>Input →
+  Code (разделение по условиям) →
+  Split →
+    ├─ IF (условие 1) → Agent 1
+    ├─ IF (условие 2) → Agent 2
+    └─ IF (условие 3) → Agent 3
+  → Merge
+</code></pre>
+
+<h2>8. Параллельная обработка с retry</h2>
+
+<pre><code>Input →
+  Split →
+    ├─ Agent 1 →
+        ├─ Success → Continue
+        └─ Error → Retry → Continue
+    ├─ Agent 2 →
+        ├─ Success → Continue
+        └─ Error → Retry → Continue
+    └─ Agent 3 →
+        ├─ Success → Continue
+        └─ Error → Retry → Continue
+  → Merge
+</code></pre>
+
+<h2>9. Параллельная обработка с таймаутами</h2>
+
+<pre><code>Input →
+  Split →
+    ├─ Agent 1 → Wait (таймаут) → Timeout Handler
+    ├─ Agent 2 → Wait (таймаут) → Timeout Handler
+    └─ Agent 3 → Wait (таймаут) → Timeout Handler
+  → Merge
+</code></pre>
+
+<h2>10. Параллельная обработка больших данных</h2>
+
+<pre><code>Input (большой массив) →
+  Split In Batches (размер: 100) →
+  Code (обработка батча) →
+  Merge →
+  Code (агрегация результатов)
+</code></pre>
+
+<h2>11. Параллельная обработка с мониторингом</h2>
+
+<pre><code>Input →
+  Set (start_time) →
+  Split →
+    ├─ Agent 1 → Set (metrics 1)
+    ├─ Agent 2 → Set (metrics 2)
+    └─ Agent 3 → Set (metrics 3)
+  → Merge →
+  Code (анализ метрик) →
+  Set (производительность)
+</code></pre>
+
+<h2>12. Best Practices</h2>
+
+<ul>
+    <li>Параллелизуйте независимые операции</li>
+    <li>Ограничивайте количество параллельных запросов</li>
+    <li>Используйте батчинг для больших объемов</li>
+    <li>Обрабатывайте ошибки для каждого потока</li>
+    <li>Мониторьте производительность</li>
+    <li>Используйте таймауты</li>
+    <li>Синхронизируйте при необходимости</li>
+</ul>
+
+<h2>13. Оптимизация параллельной обработки</h2>
+
+<ul>
+    <li>Определите оптимальный размер батча</li>
+    <li>Балансируйте нагрузку</li>
+    <li>Используйте connection pooling</li>
+    <li>Кэшируйте результаты</li>
+</ul>
+
+<p>В следующем уроке мы изучим управление состоянием.</p>
+
