@@ -204,7 +204,20 @@ async function loadLesson(lessonId) {
     contentContainer.innerHTML = '<div class="lesson-placeholder"><h2>Загрузка урока...</h2></div>';
 
     try {
-        const response = await fetch(lesson.file);
+        // Определяем правильный путь к файлу
+        let filePath = lesson.file;
+        
+        // Если открыто через file://, пробуем относительный путь
+        if (window.location.protocol === 'file:') {
+            filePath = './' + lesson.file;
+        } else {
+            // Для HTTP/HTTPS используем путь относительно текущей директории
+            const basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+            filePath = basePath + lesson.file;
+        }
+        
+        console.log('Загрузка файла:', filePath);
+        const response = await fetch(filePath);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -242,10 +255,49 @@ async function loadLesson(lessonId) {
         
     } catch (error) {
         console.error('Ошибка загрузки урока:', error);
+        console.error('Попытка загрузить файл:', lesson.file);
+        console.error('Базовый путь:', window.location.pathname);
+        
+        // Попытка альтернативного пути
+        const altPath = './' + lesson.file;
+        try {
+            const altResponse = await fetch(altPath);
+            if (altResponse.ok) {
+                const html = await altResponse.text();
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                const lessonContent = tempDiv.querySelector('body')?.innerHTML || html;
+                contentContainer.innerHTML = lessonContent;
+                
+                // Обновляем URL
+                const newUrl = new URL(window.location);
+                newUrl.searchParams.set('lesson', lessonId);
+                window.history.pushState({ lessonId }, '', newUrl);
+                
+                if (window.Prism) {
+                    Prism.highlightAllUnder(contentContainer);
+                }
+                
+                if (navigationContainer) {
+                    navigationContainer.style.display = 'flex';
+                }
+                
+                updateActiveLesson(lessonId);
+                updateNavigationButtons(lessonId);
+                return;
+            }
+        } catch (altError) {
+            console.error('Альтернативный путь также не сработал:', altError);
+        }
+        
         contentContainer.innerHTML = `
             <div class="lesson-placeholder">
                 <h2>Ошибка загрузки урока</h2>
                 <p>Не удалось загрузить урок. Убедитесь, что файл существует: ${lesson.file}</p>
+                <p style="font-size: 0.9em; color: #64748b; margin-top: 1rem;">
+                    <strong>Примечание:</strong> Для работы сайта необходимо открывать его через веб-сервер, 
+                    а не напрямую через file://. Используйте локальный сервер (например, python -m http.server).
+                </p>
             </div>
         `;
     }
@@ -364,8 +416,20 @@ function updateProgress() {
     });
 }
 
+// Проверка протокола и предупреждение
+function checkProtocol() {
+    if (window.location.protocol === 'file:') {
+        const warning = document.getElementById('fileProtocolWarning');
+        if (warning) {
+            warning.style.display = 'block';
+        }
+        console.warn('Сайт открыт через file://. Используйте локальный веб-сервер для корректной работы.');
+    }
+}
+
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
+    checkProtocol();
     initCoursePage();
 });
 

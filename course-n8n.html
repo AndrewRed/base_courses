@@ -24,6 +24,14 @@
     </header>
 
     <main class="course-main">
+        <div id="fileProtocolWarning" style="display: none; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 1rem; margin: 1rem 20px; color: #92400e;">
+            <strong>⚠️ Внимание:</strong> Сайт открыт через file:// протокол. Для корректной работы необходимо использовать локальный веб-сервер.
+            <br><br>
+            <strong>Быстрый запуск:</strong>
+            <br>1. Откройте терминал в папке проекта
+            <br>2. Запустите: <code>./start-server.sh</code> или <code>python3 -m http.server 8000</code>
+            <br>3. Откройте: <a href="http://localhost:8000/course-n8n.html" style="color: #1d4ed8;">http://localhost:8000/course-n8n.html</a>
+        </div>
         <div class="course-container">
             <aside class="course-sidebar">
                 <div class="course-progress">
