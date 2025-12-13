@@ -144,6 +144,16 @@ const llmBasicsCourseStructure = {
                 { id: 21, title: 'Когда его использовать', file: 'data/llm-basics/lesson_21.html' },
                 { id: 22, title: 'Практические примеры использования', file: 'data/llm-basics/lesson_22.html' }
             ]
+        },
+        {
+            id: 'teacher-workflow',
+            title: 'Интеграция в рабочий процесс учителя',
+            lessons: [
+                { id: 23, title: 'Ежедневные задачи: планирование и подготовка', file: 'data/llm-basics/lesson_23.html' },
+                { id: 24, title: 'Проверка работ и обратная связь', file: 'data/llm-basics/lesson_24.html' },
+                { id: 25, title: 'Работа с родителями и документацией', file: 'data/llm-basics/lesson_25.html' },
+                { id: 26, title: 'Создание шаблонов и оптимизация процессов', file: 'data/llm-basics/lesson_26.html' }
+            ]
         }
     ]
 };
