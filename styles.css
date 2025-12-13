@@ -807,6 +807,212 @@ body {
     }
 }
 
+/* Final Test Styles */
+.final-test {
+    margin-top: 3rem;
+    padding: 2rem;
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+}
+
+.test-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.test-header h3 {
+    font-size: 1.75rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+.test-progress {
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.test-question {
+    margin-bottom: 2.5rem;
+    padding: 1.5rem;
+    background: var(--background);
+    border-radius: var(--radius);
+    border-left: 4px solid var(--primary-color);
+}
+
+.test-question h4 {
+    font-size: 1.25rem;
+    margin-bottom: 1.5rem;
+    color: var(--text-primary);
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.test-options {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.test-option {
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background: var(--surface);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+}
+
+.test-option:hover {
+    border-color: var(--primary-color);
+    background: rgba(79, 70, 229, 0.05);
+    transform: translateX(4px);
+}
+
+.test-option input[type="radio"] {
+    margin-right: 0.75rem;
+    margin-top: 0.125rem;
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary-color);
+    flex-shrink: 0;
+}
+
+.test-option label {
+    cursor: pointer;
+    display: flex;
+    align-items: flex-start;
+    width: 100%;
+    color: var(--text-primary);
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+.test-option.correct {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: var(--success-color);
+}
+
+.test-option.incorrect {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: #ef4444;
+}
+
+.test-option.disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.test-option.disabled:hover {
+    transform: none;
+    border-color: var(--border-color);
+}
+
+.test-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.test-question-counter {
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.test-button {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+    color: white;
+    border: none;
+    padding: 0.875rem 1.75rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 1rem;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+}
+
+.test-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, var(--primary-hover) 0%, var(--primary-color) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(79, 70, 229, 0.35);
+}
+
+.test-button:disabled {
+    background: var(--border-color);
+    color: var(--text-secondary);
+    cursor: not-allowed;
+    opacity: 0.5;
+    transform: none;
+    box-shadow: none;
+}
+
+.test-results {
+    text-align: center;
+    padding: 2rem;
+}
+
+.test-score {
+    margin-bottom: 2rem;
+}
+
+.score-text {
+    font-size: 1.25rem;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.score-percentage {
+    font-size: 3rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 1rem 0;
+}
+
+.test-feedback {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background: var(--background);
+    border-radius: var(--radius);
+    border-left: 4px solid var(--primary-color);
+}
+
+.test-feedback h4 {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+}
+
+.test-feedback ul {
+    text-align: left;
+    max-width: 600px;
+    margin: 0 auto;
+    list-style: none;
+    padding: 0;
+}
+
+.test-feedback li {
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    background: var(--surface);
+    border-radius: var(--radius);
+    color: var(--text-secondary);
+}
+
 @media (max-width: 640px) {
     .courses-grid {
         grid-template-columns: 1fr;
@@ -835,5 +1041,18 @@ body {
 
     .section-title::after {
         width: 40px;
+    }
+
+    .final-test {
+        padding: 1.5rem;
+    }
+
+    .test-navigation {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .test-button {
+        width: 100%;
     }
 }

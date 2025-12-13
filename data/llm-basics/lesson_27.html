@@ -1,0 +1,35 @@
+<h1>Финальный тест</h1>
+
+<p>Поздравляем! Вы прошли весь курс по основам работы с LLM и <a href="https://chat.qwen.ai" target="_blank" rel="noopener noreferrer">chat.qwen.ai</a>. Теперь пришло время проверить свои знания.</p>
+
+<p>Финальный тест состоит из 15 вопросов, охватывающих все разделы курса. Каждый вопрос имеет 4 варианта ответа, только один из которых правильный.</p>
+
+<p><strong>Как пройти тест:</strong></p>
+<ul>
+    <li>Внимательно прочитайте каждый вопрос</li>
+    <li>Выберите один вариант ответа</li>
+    <li>После выбора вы сразу увидите правильный ответ</li>
+    <li>Вы можете вернуться к предыдущим вопросам, чтобы изменить ответ</li>
+    <li>После завершения теста вы увидите результаты и рекомендации</li>
+</ul>
+
+<div id="final-test" class="final-test">
+    <div class="test-header">
+        <h3>Финальный тест курса</h3>
+        <p class="test-progress">Вопрос <span id="current-question">1</span> из <span id="total-questions">15</span></p>
+    </div>
+
+    <div id="test-container" class="test-container">
+        <!-- Вопросы будут добавлены через JavaScript -->
+    </div>
+
+    <div id="test-results" class="test-results" style="display: none;">
+        <h3>Результаты теста</h3>
+        <div class="test-score">
+            <p class="score-text">Вы ответили правильно на <span id="correct-answers">0</span> из <span id="total-answers">15</span> вопросов</p>
+            <div class="score-percentage" id="score-percentage">0%</div>
+        </div>
+        <div id="test-feedback" class="test-feedback"></div>
+        <button id="retry-test" class="test-button">Пройти тест заново</button>
+    </div>
+</div>

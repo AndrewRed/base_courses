@@ -154,6 +154,13 @@ const llmBasicsCourseStructure = {
                 { id: 25, title: 'Работа с родителями и документацией', file: 'data/llm-basics/lesson_25.html' },
                 { id: 26, title: 'Создание шаблонов и оптимизация процессов', file: 'data/llm-basics/lesson_26.html' }
             ]
+        },
+        {
+            id: 'final-test',
+            title: 'Финальный тест',
+            lessons: [
+                { id: 27, title: 'Финальный тест', file: 'data/llm-basics/lesson_27.html' }
+            ]
         }
     ]
 };
@@ -365,6 +372,11 @@ async function loadLesson(lessonId) {
         
         // Добавляем улучшения интерфейса (кнопки копирования и т.п.)
         enhanceLessonContent(contentContainer);
+        
+        // Инициализируем финальный тест, если он есть на странице
+        if (contentContainer.querySelector('#final-test')) {
+            initFinalTest();
+        }
 
         // Показываем навигацию
         if (navigationContainer) {
@@ -403,6 +415,11 @@ async function loadLesson(lessonId) {
                 }
 
                 enhanceLessonContent(contentContainer);
+                
+                // Инициализируем финальный тест, если он есть на странице
+                if (contentContainer.querySelector('#final-test')) {
+                    initFinalTest();
+                }
                 
                 if (navigationContainer) {
                     navigationContainer.style.display = 'flex';
@@ -689,3 +706,366 @@ document.addEventListener('click', (e) => {
         }
     }
 });
+
+// Финальный тест
+const finalTestQuestions = [
+    {
+        question: "Что такое LLM?",
+        options: [
+            "Языковая модель, которая умеет понимать и генерировать текст",
+            "Программа для работы с базами данных",
+            "Графический редактор",
+            "Операционная система"
+        ],
+        correct: 0
+    },
+    {
+        question: "Как включить режим SEARCH (поиск) в QWEN?",
+        options: [
+            "Написать в промпте 'Используй режим поиска'",
+            "Нажать соответствующую кнопку в интерфейсе",
+            "Отправить специальное сообщение",
+            "Изменить настройки аккаунта"
+        ],
+        correct: 1
+    },
+    {
+        question: "Что такое промпт?",
+        options: [
+            "Название программы",
+            "Вопрос, запрос или инструкция, которую вы даете LLM (QWEN — это один из видов моделей, мы используем его в этом курсе, так как он бесплатный и доступный в РФ)",
+            "Тип файла",
+            "Настройка интерфейса"
+        ],
+        correct: 1
+    },
+    {
+        question: "В чем разница между режимом SEARCH и режимом глубокого исследования?",
+        options: [
+            "Это одно и то же",
+            "SEARCH — быстрый поиск актуальной информации, глубокое исследование — комплексный анализ из множества источников",
+            "SEARCH работает только на русском языке",
+            "Глубокое исследование не использует интернет"
+        ],
+        correct: 1
+    },
+    {
+        question: "Что такое контекст в LLM?",
+        options: [
+            "Настройки интерфейса",
+            "Информация из предыдущих сообщений в диалоге, которая помогает понять текущий вопрос",
+            "Размер шрифта",
+            "Цветовая схема"
+        ],
+        correct: 1
+    },
+    {
+        question: "Как начать генерацию изображений в QWEN?",
+        options: [
+            "Просто написать 'Создай изображение' в обычном режиме",
+            "Переключиться в режим 'Изображения/Image' кнопкой, затем описать желаемое изображение",
+            "Загрузить изображение в чат",
+            "Использовать специальную команду в настройках"
+        ],
+        correct: 1
+    },
+    {
+        question: "Что такое галлюцинации в LLM?",
+        options: [
+            "Визуальные эффекты в интерфейсе",
+            "Когда модель выдает неправильную или выдуманную информацию, которая звучит убедительно",
+            "Ошибки загрузки страницы",
+            "Проблемы с интернет-соединением"
+        ],
+        correct: 1
+    },
+    {
+        question: "Как экспортировать диалог из chat.qwen.ai?",
+        options: [
+            "Только в формате PDF",
+            "Только в формате TXT (текстовый файл)",
+            "В любом формате",
+            "Экспорт недоступен"
+        ],
+        correct: 1
+    },
+    {
+        question: "Что нужно сделать для работы с большим документом в QWEN?",
+        options: [
+            "Разбить документ на части вручную",
+            "Загрузить документ через кнопку '+' или 'Attach'",
+            "Скопировать весь текст в одно сообщение",
+            "Использовать только текстовый режим"
+        ],
+        correct: 1
+    },
+    {
+        question: "Когда лучше использовать режим глубокого исследования?",
+        options: [
+            "Для всех вопросов",
+            "Для простых вопросов, не требующих анализа",
+            "Для сложных задач, требующих комплексного анализа и сравнения из разных источников",
+            "Только для генерации изображений"
+        ],
+        correct: 2
+    },
+    {
+        question: "Что такое хороший промпт?",
+        options: [
+            "Очень короткий вопрос",
+            "Вопрос с контекстом, конкретными инструкциями и уточнениями",
+            "Вопрос на английском языке",
+            "Вопрос без деталей"
+        ],
+        correct: 1
+    },
+    {
+        question: "Где находится кнопка 'Новый чат' в интерфейсе chat.qwen.ai?",
+        options: [
+            "В правом верхнем углу",
+            "В левой боковой панели",
+            "Внизу страницы",
+            "В настройках"
+        ],
+        correct: 1
+    },
+    {
+        question: "Можно ли включить режим SEARCH, просто написав 'Используй режим поиска' в промпте?",
+        options: [
+            "Да, это работает",
+            "Нет, нужно обязательно нажать кнопку в интерфейсе",
+            "Только для премиум-пользователей",
+            "Только в определенных версиях интерфейса"
+        ],
+        correct: 1
+    },
+    {
+        question: "Что делать, если QWEN дал неправильный ответ?",
+        options: [
+            "Ничего, модель всегда права",
+            "Уточнить вопрос, попросить проверить информацию, использовать режим SEARCH для проверки фактов",
+            "Удалить диалог",
+            "Перезагрузить страницу"
+        ],
+        correct: 1
+    },
+    {
+        question: "QWEN может работать с какими типами файлов?",
+        options: [
+            "Только с текстовыми файлами",
+            "С различными форматами: PDF, Word, текстовые файлы (зависит от версии интерфейса)",
+            "Только с изображениями",
+            "С любыми файлами без ограничений"
+        ],
+        correct: 1
+    }
+];
+
+let currentTestQuestion = 0;
+let testAnswers = [];
+let testStarted = false;
+
+function initFinalTest() {
+    const testContainer = document.getElementById('test-container');
+    const totalQuestions = document.getElementById('total-questions');
+    
+    if (!testContainer) return;
+    
+    totalQuestions.textContent = finalTestQuestions.length;
+    testAnswers = new Array(finalTestQuestions.length).fill(null);
+    currentTestQuestion = 0;
+    testStarted = false;
+    
+    renderTestQuestion();
+    setupTestNavigation();
+}
+
+function renderTestQuestion() {
+    const testContainer = document.getElementById('test-container');
+    const currentQuestionEl = document.getElementById('current-question');
+    const question = finalTestQuestions[currentTestQuestion];
+    
+    if (!testContainer || !question) return;
+    
+    currentQuestionEl.textContent = currentTestQuestion + 1;
+    
+    const questionHtml = `
+        <div class="test-question">
+            <h4>${question.question}</h4>
+            <ul class="test-options">
+                ${question.options.map((option, index) => `
+                    <li class="test-option" data-index="${index}">
+                        <input type="radio" name="test-answer" id="option-${index}" value="${index}">
+                        <label for="option-${index}">${option}</label>
+                    </li>
+                `).join('')}
+            </ul>
+        </div>
+    `;
+    
+    testContainer.innerHTML = questionHtml;
+    
+    // Восстанавливаем выбранный ответ, если он был
+    if (testAnswers[currentTestQuestion] !== null) {
+        const radio = document.getElementById(`option-${testAnswers[currentTestQuestion]}`);
+        if (radio) radio.checked = true;
+    }
+    
+    // Добавляем обработчики
+    document.querySelectorAll('.test-option').forEach(option => {
+        option.addEventListener('click', function() {
+            if (this.classList.contains('disabled')) return;
+            
+            const index = parseInt(this.dataset.index);
+            const radio = document.getElementById(`option-${index}`);
+            radio.checked = true;
+            testAnswers[currentTestQuestion] = index;
+            
+            // Отключаем все опции после выбора
+            document.querySelectorAll('.test-option').forEach(opt => {
+                opt.classList.add('disabled');
+            });
+            
+            // Показываем правильный ответ
+            showAnswerFeedback(index, question.correct);
+        });
+    });
+}
+
+function showAnswerFeedback(selectedIndex, correctIndex) {
+    document.querySelectorAll('.test-option').forEach((option, index) => {
+        option.classList.add('disabled');
+        if (index === correctIndex) {
+            option.classList.add('correct');
+            // Добавляем галочку к правильному ответу
+            const label = option.querySelector('label');
+            if (label && !label.textContent.includes('✓')) {
+                label.innerHTML = '✓ ' + label.textContent;
+            }
+        } else if (index === selectedIndex && index !== correctIndex) {
+            option.classList.add('incorrect');
+            // Добавляем крестик к неправильному ответу
+            const label = option.querySelector('label');
+            if (label && !label.textContent.includes('✗')) {
+                label.innerHTML = '✗ ' + label.textContent;
+            }
+        }
+    });
+    
+    // Включаем кнопку "Следующий вопрос"
+    const nextButton = document.querySelector('.test-next-button');
+    if (nextButton) {
+        nextButton.disabled = false;
+    }
+}
+
+function setupTestNavigation() {
+    const testContainer = document.getElementById('test-container');
+    if (!testContainer) return;
+    
+    // Удаляем старую навигацию, если есть
+    const oldNav = testContainer.querySelector('.test-navigation');
+    if (oldNav) oldNav.remove();
+    
+    const navHtml = `
+        <div class="test-navigation">
+            <button class="test-button test-prev-button" ${currentTestQuestion === 0 ? 'disabled' : ''}>
+                ← Предыдущий
+            </button>
+            <span class="test-question-counter">${currentTestQuestion + 1} / ${finalTestQuestions.length}</span>
+            <button class="test-button test-next-button" ${testAnswers[currentTestQuestion] === null ? 'disabled' : ''}>
+                ${currentTestQuestion === finalTestQuestions.length - 1 ? 'Завершить тест' : 'Следующий →'}
+            </button>
+        </div>
+    `;
+    
+    testContainer.insertAdjacentHTML('beforeend', navHtml);
+    
+    // Обработчики кнопок
+    const prevButton = testContainer.querySelector('.test-prev-button');
+    const nextButton = testContainer.querySelector('.test-next-button');
+    
+    if (prevButton) {
+        prevButton.addEventListener('click', () => {
+            if (currentTestQuestion > 0) {
+                currentTestQuestion--;
+                renderTestQuestion();
+                setupTestNavigation();
+            }
+        });
+    }
+    
+    if (nextButton) {
+        nextButton.addEventListener('click', () => {
+            if (testAnswers[currentTestQuestion] === null) return;
+            
+            if (currentTestQuestion < finalTestQuestions.length - 1) {
+                currentTestQuestion++;
+                renderTestQuestion();
+                setupTestNavigation();
+            } else {
+                showTestResults();
+            }
+        });
+    }
+}
+
+function showTestResults() {
+    const testContainer = document.getElementById('test-container');
+    const testResults = document.getElementById('test-results');
+    const correctAnswers = testAnswers.reduce((count, answer, index) => {
+        return count + (answer === finalTestQuestions[index].correct ? 1 : 0);
+    }, 0);
+    
+    const percentage = Math.round((correctAnswers / finalTestQuestions.length) * 100);
+    
+    document.getElementById('correct-answers').textContent = correctAnswers;
+    document.getElementById('total-answers').textContent = finalTestQuestions.length;
+    document.getElementById('score-percentage').textContent = percentage + '%';
+    
+    // Формируем обратную связь
+    let feedback = '';
+    if (percentage >= 90) {
+        feedback = '<h4>Отлично! 🎉</h4><p>Вы отлично усвоили материал курса! Вы готовы эффективно использовать QWEN в своей работе.</p>';
+    } else if (percentage >= 70) {
+        feedback = '<h4>Хорошо! 👍</h4><p>Вы хорошо усвоили основные концепции. Рекомендуем повторить те разделы, где были ошибки.</p>';
+    } else if (percentage >= 50) {
+        feedback = '<h4>Неплохо 📚</h4><p>Вы усвоили базовые знания, но есть пробелы. Рекомендуем вернуться к урокам и повторить материал.</p>';
+    } else {
+        feedback = '<h4>Нужно повторить 📖</h4><p>Рекомендуем пройти курс еще раз, обращая особое внимание на темы, где были допущены ошибки.</p>';
+    }
+    
+    // Добавляем информацию о неправильных ответах
+    const wrongAnswers = [];
+    testAnswers.forEach((answer, index) => {
+        if (answer !== finalTestQuestions[index].correct) {
+            wrongAnswers.push({
+                question: finalTestQuestions[index].question,
+                correct: finalTestQuestions[index].options[finalTestQuestions[index].correct]
+            });
+        }
+    });
+    
+    if (wrongAnswers.length > 0) {
+        feedback += '<h4 style="margin-top: 1.5rem;">Рекомендуется повторить:</h4><ul>';
+        wrongAnswers.forEach(item => {
+            feedback += `<li><strong>${item.question}</strong><br>Правильный ответ: ${item.correct}</li>`;
+        });
+        feedback += '</ul>';
+    }
+    
+    document.getElementById('test-feedback').innerHTML = feedback;
+    
+    testContainer.style.display = 'none';
+    testResults.style.display = 'block';
+    
+    // Обработчик кнопки "Пройти заново"
+    document.getElementById('retry-test').addEventListener('click', () => {
+        testAnswers = new Array(finalTestQuestions.length).fill(null);
+        currentTestQuestion = 0;
+        testContainer.style.display = 'block';
+        testResults.style.display = 'none';
+        renderTestQuestion();
+        setupTestNavigation();
+    });
+}
