@@ -362,6 +362,9 @@ async function loadLesson(lessonId) {
         if (window.Prism) {
             Prism.highlightAllUnder(contentContainer);
         }
+        
+        // Добавляем улучшения интерфейса (кнопки копирования и т.п.)
+        enhanceLessonContent(contentContainer);
 
         // Показываем навигацию
         if (navigationContainer) {
@@ -398,6 +401,8 @@ async function loadLesson(lessonId) {
                 if (window.Prism) {
                     Prism.highlightAllUnder(contentContainer);
                 }
+
+                enhanceLessonContent(contentContainer);
                 
                 if (navigationContainer) {
                     navigationContainer.style.display = 'flex';
@@ -421,6 +426,113 @@ async function loadLesson(lessonId) {
                 </p>
             </div>
         `;
+    }
+}
+
+function enhanceLessonContent(contentContainer) {
+    if (!contentContainer) return;
+    addCopyButtonsToBlockquotes(contentContainer);
+}
+
+function addCopyButtonsToBlockquotes(root) {
+    root.querySelectorAll('blockquote').forEach((blockquote) => {
+        if (blockquote.querySelector('.copy-blockquote-button')) return;
+
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'copy-blockquote-button';
+        button.textContent = 'Копировать';
+
+        button.addEventListener('click', async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const textToCopy = getCopyTextFromBlockquote(blockquote);
+            if (!textToCopy) return;
+
+            const copied = await copyTextToClipboard(textToCopy);
+            const originalLabel = button.textContent;
+            button.textContent = copied ? 'Скопировано' : 'Не получилось';
+            if (copied) {
+                button.classList.add('copied');
+            }
+
+            window.setTimeout(() => {
+                button.textContent = originalLabel;
+                button.classList.remove('copied');
+            }, 1200);
+        });
+
+        blockquote.appendChild(button);
+    });
+}
+
+function getCopyTextFromBlockquote(blockquote) {
+    const promptParts = [];
+    blockquote.querySelectorAll('p, li').forEach((element) => {
+        const extracted = extractQuotedPrompt(element.textContent);
+        if (extracted) promptParts.push(extracted);
+    });
+
+    const uniquePrompts = [...new Set(promptParts.map((value) => value.trim()).filter(Boolean))];
+    if (uniquePrompts.length > 0) {
+        return uniquePrompts.join('\n');
+    }
+
+    const clone = blockquote.cloneNode(true);
+    clone.querySelectorAll('.copy-blockquote-button').forEach((button) => button.remove());
+    return clone.textContent.trim();
+}
+
+function extractQuotedPrompt(text) {
+    const normalized = (text || '').replace(/\s+/g, ' ').trim();
+    if (!normalized) return null;
+
+    const quotePairs = [
+        { open: '«', close: '»' },
+        { open: '“', close: '”' },
+        { open: '"', close: '"' }
+    ];
+
+    for (const { open, close } of quotePairs) {
+        const start = normalized.indexOf(open);
+        const end = normalized.lastIndexOf(close);
+        if (start !== -1 && end !== -1 && end > start) {
+            const inner = normalized.slice(start + open.length, end).trim();
+            if (inner) return inner;
+        }
+    }
+
+    return null;
+}
+
+async function copyTextToClipboard(text) {
+    if (!text) return false;
+
+    try {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(text);
+            return true;
+        }
+    } catch {
+        // ignore and fallback
+    }
+
+    try {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.top = '-9999px';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        return ok;
+    } catch {
+        return false;
     }
 }
 
@@ -569,4 +681,3 @@ document.addEventListener('click', (e) => {
         }
     }
 });
-
