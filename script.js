@@ -1,5 +1,19 @@
+// Определение текущего курса
+function getCurrentCourse() {
+    const path = window.location.pathname;
+    const filename = path.substring(path.lastIndexOf('/') + 1);
+    
+    if (filename === 'course-llm-basics.html' || filename.includes('llm-basics')) {
+        return 'llm-basics';
+    } else if (filename === 'course-n8n.html' || filename.includes('n8n')) {
+        return 'n8n';
+    }
+    // По умолчанию возвращаем n8n для обратной совместимости
+    return 'n8n';
+}
+
 // Структура курса по n8n
-const courseStructure = {
+const n8nCourseStructure = {
     sections: [
         {
             id: 'intro',
@@ -72,10 +86,89 @@ const courseStructure = {
     ]
 };
 
+// Структура базового курса по LLM
+const llmBasicsCourseStructure = {
+    sections: [
+        {
+            id: 'intro',
+            title: 'Введение в LLM и QWEN',
+            lessons: [
+                { id: 1, title: 'Что такое LLM и зачем они нужны', file: 'data/llm-basics/lesson_1.html' },
+                { id: 2, title: 'Знакомство с QWEN и chat.qwen.ai', file: 'data/llm-basics/lesson_2.html' },
+                { id: 3, title: 'Регистрация и первый запуск', file: 'data/llm-basics/lesson_3.html' }
+            ]
+        },
+        {
+            id: 'basics',
+            title: 'Основы работы с chat.qwen.ai',
+            lessons: [
+                { id: 4, title: 'Интерфейс и основные элементы', file: 'data/llm-basics/lesson_4.html' },
+                { id: 5, title: 'Базовое использование: задаем вопросы', file: 'data/llm-basics/lesson_5.html' },
+                { id: 6, title: 'Сохранение и управление диалогами', file: 'data/llm-basics/lesson_6.html' },
+                { id: 7, title: 'Настройки и параметры', file: 'data/llm-basics/lesson_7.html' }
+            ]
+        },
+        {
+            id: 'prompts',
+            title: 'Промпты: искусство общения с AI',
+            lessons: [
+                { id: 8, title: 'Что такое промпт', file: 'data/llm-basics/lesson_8.html' },
+                { id: 9, title: 'Структура хорошего промпта', file: 'data/llm-basics/lesson_9.html' },
+                { id: 10, title: 'Примеры эффективных промптов', file: 'data/llm-basics/lesson_10.html' },
+                { id: 11, title: 'Типичные ошибки и галлюцинации', file: 'data/llm-basics/lesson_11.html' },
+                { id: 12, title: 'Практические задания по созданию промптов', file: 'data/llm-basics/lesson_12.html' }
+            ]
+        },
+        {
+            id: 'context',
+            title: 'Работа с контекстом и большими текстами',
+            lessons: [
+                { id: 13, title: 'Что такое контекст в LLM', file: 'data/llm-basics/lesson_13.html' },
+                { id: 14, title: 'Загрузка и обработка больших документов', file: 'data/llm-basics/lesson_14.html' },
+                { id: 15, title: 'Работа с файлами и текстами', file: 'data/llm-basics/lesson_15.html' },
+                { id: 16, title: 'Стратегии работы с длинными текстами', file: 'data/llm-basics/lesson_16.html' }
+            ]
+        },
+        {
+            id: 'images',
+            title: 'Генерация изображений',
+            lessons: [
+                { id: 17, title: 'Как генерировать изображения в QWEN', file: 'data/llm-basics/lesson_17.html' },
+                { id: 18, title: 'Описание желаемого изображения', file: 'data/llm-basics/lesson_18.html' },
+                { id: 19, title: 'Редактирование и улучшение изображений', file: 'data/llm-basics/lesson_19.html' }
+            ]
+        },
+        {
+            id: 'deep-research',
+            title: 'Режим глубокого исследования',
+            lessons: [
+                { id: 20, title: 'Что такое режим глубокого исследования', file: 'data/llm-basics/lesson_20.html' },
+                { id: 21, title: 'Когда его использовать', file: 'data/llm-basics/lesson_21.html' },
+                { id: 22, title: 'Практические примеры использования', file: 'data/llm-basics/lesson_22.html' }
+            ]
+        }
+    ]
+};
+
+// Получение структуры текущего курса
+function getCourseStructure() {
+    const course = getCurrentCourse();
+    if (course === 'llm-basics') {
+        return llmBasicsCourseStructure;
+    }
+    return n8nCourseStructure;
+}
+
 // Утилиты для работы с localStorage
 const ProgressManager = {
+    getStorageKey() {
+        const course = getCurrentCourse();
+        return `${course}_completed_lessons`;
+    },
+
     getCompletedLessons() {
-        const stored = localStorage.getItem('n8n_completed_lessons');
+        const key = this.getStorageKey();
+        const stored = localStorage.getItem(key);
         return stored ? JSON.parse(stored) : [];
     },
 
@@ -83,7 +176,8 @@ const ProgressManager = {
         const completed = this.getCompletedLessons();
         if (!completed.includes(lessonId)) {
             completed.push(lessonId);
-            localStorage.setItem('n8n_completed_lessons', JSON.stringify(completed));
+            const key = this.getStorageKey();
+            localStorage.setItem(key, JSON.stringify(completed));
         }
     },
 
@@ -92,6 +186,7 @@ const ProgressManager = {
     },
 
     getProgress() {
+        const courseStructure = getCourseStructure();
         const totalLessons = courseStructure.sections.reduce((sum, section) => sum + section.lessons.length, 0);
         const completed = this.getCompletedLessons().length;
         return totalLessons > 0 ? Math.round((completed / totalLessons) * 100) : 0;
@@ -305,6 +400,7 @@ async function loadLesson(lessonId) {
 
 // Поиск урока по ID
 function findLessonById(lessonId) {
+    const courseStructure = getCourseStructure();
     for (const section of courseStructure.sections) {
         const lesson = section.lessons.find(l => l.id === lessonId);
         if (lesson) return lesson;
@@ -354,6 +450,7 @@ function updateNavigationButtons(lessonId) {
 // Получить все уроки в порядке следования
 function getAllLessons() {
     const lessons = [];
+    const courseStructure = getCourseStructure();
     courseStructure.sections.forEach(section => {
         section.lessons.forEach(lesson => {
             lessons.push(lesson);
