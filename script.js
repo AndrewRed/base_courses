@@ -780,7 +780,7 @@ const finalTestQuestions = [
         correct: 1
     },
     {
-        question: "Как экспортировать диалог из chat.qwen.ai?",
+        question: "В каком формате можно экспортировать диалог из chat.qwen.ai?",
         options: [
             "Только в формате PDF",
             "Только в формате TXT (текстовый файл)",
