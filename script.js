@@ -2,14 +2,12 @@
 function getCurrentCourse() {
     const path = window.location.pathname;
     const filename = path.substring(path.lastIndexOf('/') + 1);
-    
-    if (filename === 'course-llm-basics.html' || filename.includes('llm-basics')) {
-        return 'llm-basics';
-    } else if (filename === 'course-n8n.html' || filename.includes('n8n')) {
-        return 'n8n';
-    }
-    // По умолчанию возвращаем n8n для обратной совместимости
-    return 'n8n';
+    const course = (filename === 'course-llm-basics.html' || filename.includes('llm-basics')) ? 'llm-basics' : 
+                   (filename === 'course-n8n.html' || filename.includes('n8n')) ? 'n8n' : 'n8n';
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/9f7d3ce0-fb5c-4290-a350-afb41e7b5de1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:2',message:'getCurrentCourse result',data:{path,filename,course},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    return course;
 }
 
 // Структура курса по n8n
@@ -195,7 +193,13 @@ const ProgressManager = {
 
 // Инициализация страницы курса
 function initCoursePage() {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/9f7d3ce0-fb5c-4290-a350-afb41e7b5de1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:197',message:'initCoursePage called',data:{hasCourseSections:!!document.getElementById('courseSections')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
     if (!document.getElementById('courseSections')) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/9f7d3ce0-fb5c-4290-a350-afb41e7b5de1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:200',message:'courseSections not found, returning early',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
         return; // Не на странице курса
     }
 
@@ -221,6 +225,18 @@ function renderCourseNavigation() {
 
     container.innerHTML = '';
 
+    // #region agent log
+    try {
+        const course = getCurrentCourse();
+        const courseStructure = getCourseStructure();
+        fetch('http://127.0.0.1:7242/ingest/9f7d3ce0-fb5c-4290-a350-afb41e7b5de1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:218',message:'renderCourseNavigation before forEach',data:{course,hasStructure:!!courseStructure,sectionsCount:courseStructure?.sections?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    } catch(e) {
+        fetch('http://127.0.0.1:7242/ingest/9f7d3ce0-fb5c-4290-a350-afb41e7b5de1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:218',message:'renderCourseNavigation ERROR',data:{error:e.message,errorStack:e.stack},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        throw e;
+    }
+    // #endregion
+
+    const courseStructure = getCourseStructure();
     courseStructure.sections.forEach((section, sectionIndex) => {
         const sectionLi = document.createElement('li');
         sectionLi.className = 'course-section';
