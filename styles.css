@@ -95,6 +95,34 @@ body {
     background: var(--primary-color);
 }
 
+.donate-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: var(--background);
+    border: 2px solid #ff6b9d;
+    border-radius: 50%;
+    text-decoration: none;
+    transition: var(--transition);
+    box-shadow: var(--shadow-sm);
+    margin-left: 1rem;
+}
+
+.donate-button:hover {
+    transform: translateY(-2px) scale(1.1);
+    box-shadow: var(--shadow-md);
+    background: #fff5f7;
+    border-color: #ff8fab;
+}
+
+.heart-icon {
+    font-size: 1.2rem;
+    line-height: 1;
+    filter: drop-shadow(0 1px 2px rgba(255, 107, 157, 0.3));
+}
+
 /* Hero Section */
 .hero {
     padding: 4rem 0;
