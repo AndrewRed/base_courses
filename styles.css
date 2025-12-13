@@ -520,14 +520,111 @@ body {
 }
 
 .lesson-placeholder {
-    text-align: center;
-    padding: 4rem 2rem;
+    text-align: left;
+    padding: 2.5rem;
     color: var(--text-secondary);
+    max-width: 100%;
+}
+
+.lesson-placeholder h1 {
+    font-size: 2.25rem;
+    margin-bottom: 1.5rem;
+    color: var(--text-primary);
+    padding-bottom: 1.25rem;
+    border-bottom: 3px solid;
+    border-image: linear-gradient(90deg, var(--primary-color) 0%, var(--accent-color) 100%) 1;
+    font-weight: 800;
+    letter-spacing: -0.02em;
 }
 
 .lesson-placeholder h2 {
+    margin-top: 2rem;
     margin-bottom: 1rem;
     color: var(--text-primary);
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.lesson-placeholder p {
+    text-align: left;
+    margin: 1rem 0;
+    color: var(--text-primary);
+}
+
+.lesson-placeholder ul {
+    text-align: left;
+    margin: 1rem 0;
+    padding-left: 1.5rem;
+}
+
+.lesson-placeholder li {
+    text-align: left;
+    margin: 0.5rem 0;
+    line-height: 1.8;
+}
+
+.lesson-placeholder .intro-text {
+    font-size: 1.25rem;
+    line-height: 1.8;
+    margin: 2rem 0;
+    color: var(--text-primary);
+}
+
+.lesson-placeholder .skills-list {
+    list-style: none;
+    padding-left: 0;
+    margin: 1.5rem 0;
+}
+
+.lesson-placeholder .skills-list li {
+    padding-left: 1.75rem;
+    position: relative;
+    margin: 0.75rem 0;
+    line-height: 1.8;
+}
+
+.lesson-placeholder .skills-list li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: var(--success-color);
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.lesson-placeholder .course-sections-box {
+    background: var(--background);
+    padding: 1.5rem;
+    border-radius: var(--radius);
+    margin: 1.5rem 0;
+    border-left: 4px solid var(--primary-color);
+}
+
+.lesson-placeholder .sections-list {
+    margin: 0;
+    padding-left: 1.5rem;
+    list-style-position: outside;
+}
+
+.lesson-placeholder .sections-list li {
+    margin: 0.75rem 0;
+    line-height: 1.8;
+}
+
+.lesson-placeholder .call-to-action {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin: 2rem 0;
+}
+
+.lesson-placeholder .tip-box {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(79, 70, 229, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%);
+    border-radius: var(--radius);
+    border-left: 4px solid var(--primary-color);
+    line-height: 1.8;
 }
 
 .lesson-content {
