@@ -447,19 +447,27 @@ function addCopyButtonsToBlockquotes(root) {
             event.preventDefault();
             event.stopPropagation();
 
+            if (button.dataset.copyInProgress === '1') return;
+            button.dataset.copyInProgress = '1';
+
             const textToCopy = getCopyTextFromBlockquote(blockquote);
-            if (!textToCopy) return;
+            if (!textToCopy) {
+                button.dataset.copyInProgress = '0';
+                return;
+            }
 
             const copied = await copyTextToClipboard(textToCopy);
-            const originalLabel = button.textContent;
             button.textContent = copied ? 'Скопировано' : 'Не получилось';
             if (copied) {
                 button.classList.add('copied');
             }
+            button.disabled = true;
 
             window.setTimeout(() => {
-                button.textContent = originalLabel;
+                button.textContent = 'Копировать';
                 button.classList.remove('copied');
+                button.disabled = false;
+                button.dataset.copyInProgress = '0';
             }, 1200);
         });
 
