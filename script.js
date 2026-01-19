@@ -228,6 +228,17 @@ function initCoursePage() {
     const lessonId = urlParams.get('lesson');
     if (lessonId) {
         loadLesson(parseInt(lessonId));
+    } else {
+        // Инициализация кнопки «Начать курс» на стартовом экране
+        const startBtn = document.getElementById('startCourseBtn');
+        const allLessons = getAllLessons();
+        const firstLesson = allLessons.length > 0 ? allLessons[0] : null;
+
+        if (startBtn && firstLesson) {
+            startBtn.addEventListener('click', () => {
+                loadLesson(firstLesson.id);
+            });
+        }
     }
 
     // Обработчики навигации

@@ -627,6 +627,52 @@ body {
     line-height: 1.8;
 }
 
+.start-course-actions {
+    margin-top: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.start-course-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.9rem 1.8rem;
+    border-radius: var(--radius-lg);
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+    transition: var(--transition);
+}
+
+.start-course-button:hover {
+    background: linear-gradient(135deg, var(--primary-hover) 0%, var(--primary-color) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(79, 70, 229, 0.45);
+}
+
+.start-course-button:active {
+    transform: translateY(0);
+    box-shadow: 0 3px 10px rgba(79, 70, 229, 0.3);
+}
+
+.start-course-button:focus-visible {
+    outline: 2px solid rgba(79, 70, 229, 0.7);
+    outline-offset: 3px;
+}
+
+.start-course-hint {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    max-width: 420px;
+}
+
 .lesson-content {
     line-height: 1.8;
 }
