@@ -86,9 +86,9 @@ const llmBasicsCourseStructure = {
     sections: [
         {
             id: 'intro',
-            title: 'Введение в LLM и QWEN',
+            title: 'Введение в языковые модели и QWEN',
             lessons: [
-                { id: 1, title: 'Что такое LLM и зачем они нужны', file: 'data/llm-basics/lesson_1.html' },
+                { id: 1, title: 'Что такое языковые модели и зачем они нужны', file: 'data/llm-basics/lesson_1.html' },
                 { id: 2, title: 'Знакомство с QWEN и chat.qwen.ai', file: 'data/llm-basics/lesson_2.html' },
                 { id: 3, title: 'Регистрация и первый запуск', file: 'data/llm-basics/lesson_3.html' }
             ]
@@ -118,7 +118,7 @@ const llmBasicsCourseStructure = {
             id: 'context',
             title: 'Работа с контекстом и большими текстами',
             lessons: [
-                { id: 13, title: 'Что такое контекст в LLM', file: 'data/llm-basics/lesson_13.html' },
+                { id: 13, title: 'Что такое контекст в языковых моделях', file: 'data/llm-basics/lesson_13.html' },
                 { id: 14, title: 'Загрузка и обработка больших документов', file: 'data/llm-basics/lesson_14.html' },
                 { id: 15, title: 'Работа с файлами и текстами', file: 'data/llm-basics/lesson_15.html' },
                 { id: 16, title: 'Стратегии работы с длинными текстами', file: 'data/llm-basics/lesson_16.html' }
@@ -701,7 +701,7 @@ document.addEventListener('click', (e) => {
 // Финальный тест
 const finalTestQuestions = [
     {
-        question: "Что такое LLM?",
+        question: "Что такое языковые модели?",
         options: [
             "Языковая модель, которая умеет понимать и генерировать текст",
             "Программа для работы с базами данных",
@@ -724,7 +724,7 @@ const finalTestQuestions = [
         question: "Что такое промпт?",
         options: [
             "Название программы",
-            "Вопрос, запрос или инструкция, которую вы даете LLM (QWEN — это один из видов моделей, мы используем его в этом курсе, так как он бесплатный и доступный в РФ)",
+            "Вопрос, запрос или инструкция, которую вы даете языковой модели (QWEN — это один из видов моделей, мы используем его в этом курсе, так как он бесплатный и доступный в РФ)",
             "Тип файла",
             "Настройка интерфейса"
         ],
@@ -741,7 +741,7 @@ const finalTestQuestions = [
         correct: 1
     },
     {
-        question: "Что такое контекст в LLM?",
+        question: "Что такое контекст в языковых моделях?",
         options: [
             "Настройки интерфейса",
             "Информация из предыдущих сообщений в диалоге, которая помогает понять текущий вопрос",
@@ -761,7 +761,7 @@ const finalTestQuestions = [
         correct: 1
     },
     {
-        question: "Что такое галлюцинации в LLM?",
+        question: "Что такое галлюцинации в языковых моделях?",
         options: [
             "Визуальные эффекты в интерфейсе",
             "Когда модель выдает неправильную или выдуманную информацию, которая звучит убедительно",
