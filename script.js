@@ -581,6 +581,7 @@ function updateNavigationButtons(lessonId) {
     
     const allLessons = getAllLessons();
     const currentIndex = allLessons.findIndex(l => l.id === lessonId);
+    const isLast = currentIndex === allLessons.length - 1;
     
     if (prevButton) {
         prevButton.disabled = currentIndex === 0;
@@ -590,14 +591,40 @@ function updateNavigationButtons(lessonId) {
     }
     
     if (nextButton) {
-        nextButton.disabled = currentIndex === allLessons.length - 1;
-        if (currentIndex < allLessons.length - 1) {
+        if (isLast) {
+            // Последний урок: вместо неактивной кнопки делаем «Вернуться в начало курса»
+            nextButton.disabled = false;
+            nextButton.textContent = 'Вернуться в начало курса';
+            nextButton.onclick = () => {
+                const firstLesson = allLessons[0];
+                if (firstLesson) {
+                    loadLesson(firstLesson.id);
+                }
+            };
+        } else {
+            // Промежуточные уроки: стандартная навигация «Следующий урок →»
+            nextButton.disabled = false;
+            nextButton.textContent = 'Следующий урок →';
             nextButton.onclick = () => {
                 loadLesson(allLessons[currentIndex + 1].id);
                 ProgressManager.markLessonComplete(lessonId);
                 updateProgress();
             };
         }
+
+        // Альтернативный вариант (скрывать кнопку на последнем уроке вместо смены текста):
+        // if (isLast) {
+        //     nextButton.style.display = 'none';
+        // } else {
+        //     nextButton.style.display = '';
+        //     nextButton.disabled = false;
+        //     nextButton.textContent = 'Следующий урок →';
+        //     nextButton.onclick = () => {
+        //         loadLesson(allLessons[currentIndex + 1].id);
+        //         ProgressManager.markLessonComplete(lessonId);
+        //         updateProgress();
+        //     };
+        // }
     }
 }
 
